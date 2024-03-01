@@ -14,13 +14,14 @@ management:
 spring:
   cloud:
     gateway:
-      routes:
-        - id: account-service
-          uri: lb://account-service
-          predicates:
-            - Path=/accounts/**
+      mvc:
+        routes:
+          - id: account-service
+            uri: lb://account-service
+            predicates:
+              - Path=/accounts/**
 
-        - id: transaction-service
-          uri: lb://transaction-service
-          predicates:
-            - Path=/transactions/**
+          - id: transaction-service
+            uri: lb://transaction-service
+            predicates:
+              - Path=/transactions/**
