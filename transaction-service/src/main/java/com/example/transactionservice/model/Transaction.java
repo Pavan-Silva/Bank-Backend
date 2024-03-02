@@ -17,6 +17,7 @@ public class Transaction {
 
     @Id
     @Column(name = "ref_no", nullable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @NotNull
@@ -34,10 +35,6 @@ public class Transaction {
     @NotNull
     @Column(name = "sender_id", nullable = false)
     private Integer senderId;
-
-    @NotNull
-    @Column(name = "acc_balance", nullable = false, precision = 12, scale = 2)
-    private BigDecimal accBalance;
 
     @Size(max = 100)
     @Column(name = "description", length = 100)
