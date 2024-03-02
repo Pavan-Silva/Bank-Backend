@@ -8,4 +8,10 @@
 /dataSources.local.xml
 icon.svg
 jpa-buddy.xml
-/**
+dataSources.xml
+encodings.xml
+misc.xml
+modules.xml
+sqldialects.xml
+vcs.xml
+compiler.xml
