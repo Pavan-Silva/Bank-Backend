@@ -1,6 +1,5 @@
 package com.example.transactionservice.controller;
 
-import com.example.transactionservice.dto.ConfirmationRequest;
 import com.example.transactionservice.dto.TransactionInfo;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.service.TransactionService;
@@ -19,11 +18,6 @@ public class TransactionController {
     @GetMapping
     public Transaction find(@RequestParam HashMap<String,String> params) {
         return transactionService.findByParams(params);
-    }
-
-    @PostMapping("/confirm")
-    public void confirm(@RequestBody ConfirmationRequest confirmationRequest) {
-        transactionService.confirm(confirmationRequest);
     }
 
     @PostMapping

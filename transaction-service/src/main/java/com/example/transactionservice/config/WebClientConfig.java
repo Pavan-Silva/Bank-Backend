@@ -1,6 +1,7 @@
 package com.example.transactionservice.config;
 
 import com.example.transactionservice.client.AccountClient;
+import com.example.transactionservice.client.EmailClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.client.loadbalancer.reactive.LoadBalancedExchangeFilterFunction;
 import org.springframework.context.annotation.Bean;
@@ -27,5 +28,19 @@ public class WebClientConfig {
                 .build();
 
         return  httpServiceProxyFactory.createClient(AccountClient.class);
+    }
+
+    @Bean
+    public WebClient emailWebClient() {
+        return WebClient.builder().baseUrl("http://email-service").filter(filterFunction).build();
+    }
+
+    @Bean
+    public EmailClient emailClient() {
+        HttpServiceProxyFactory httpServiceProxyFactory = HttpServiceProxyFactory
+                .builderFor(WebClientAdapter.create(emailWebClient()))
+                .build();
+
+        return  httpServiceProxyFactory.createClient(EmailClient.class);
     }
 }

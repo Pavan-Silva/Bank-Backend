@@ -44,4 +44,7 @@ public class Account {
     @ManyToOne(optional = false)
     @JoinColumn(name = "acc_status_id", nullable = false)
     private AccStatus accStatus;
+
+    @Column(name = "failed_transaction_attempts")
+    private Integer failedTransactionAttempts;
 }

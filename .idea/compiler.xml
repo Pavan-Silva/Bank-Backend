@@ -12,6 +12,7 @@
         <module name="transaction-service" />
         <module name="account-service" />
         <module name="service-registry" />
+        <module name="email-service" />
       </profile>
     </annotationProcessing>
   </component>
@@ -20,6 +21,7 @@
       <module name="account-service" options="-parameters" />
       <module name="api-gateway" options="-parameters" />
       <module name="config-server" options="-parameters" />
+      <module name="email-service" options="-parameters" />
       <module name="service-registry" options="-parameters" />
       <module name="transaction-service" options="-parameters" />
     </option>

@@ -1,6 +1,6 @@
 package com.example.transactionservice.service;
 
-import com.example.transactionservice.dto.ConfirmationRequest;
+import com.example.transactionservice.dto.Otp;
 import com.example.transactionservice.dto.TransactionInfo;
 import com.example.transactionservice.model.Transaction;
 
@@ -12,5 +12,7 @@ public interface TransactionService {
 
     Transaction save(TransactionInfo transactionInfo);
 
-    void confirm(ConfirmationRequest confirmationRequest);
+    boolean verify(Integer refNo, Otp otp);
+
+    void resendOtp(Integer refNo);
 }

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>OTP Verification</title>
+
+    <script>
+        const xhr = new XMLHttpRequest();
+        function resend() {
+            xhr.open("GET", "http://localhost:8060/transactions/verify/[[${refNo}]]/resend");
+            xhr.send();
+
+            document.getElementById("resend").disabled = true;
+        }
+    </script>
+</head>
+
+<body class="w-full h-svh font-sans">
+    <div class="w-full h-full bg-black p-5 flex items-center justify-center bg-opacity-60">
+        <div class="bg-white w-full max-w-sm h-fit p-4 rounded-md">
+            <div class="flex flex-row items-center p-5 text-black text-opacity-65 w-full justify-center">
+                <svg
+                        viewBox="82 211.2 205.7 205.8"
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-14"
+                >
+                    <defs>
+                        <style type="text/css">
+                            .st1 {
+                                fill: #ff9100;
+                            }
+                            .st2 {
+                                fill: #ffcb05;
+                            }
+                        </style>
+                    </defs>
+                    <g
+                            id="g903"
+                            transform="matrix(1, 0, 0, 1, 0, 7.105427357601002e-15)"
+                    >
+                        <path
+                                id="path899"
+                                class="st1"
+                                d="M250.6,350.7c0,16.1-13,29.2-29.1,29.2c0,0-0.1,0-0.1,0H119.1L82,417h139.4 c36.6,0,66.3-29.7,66.3-66.3V211.2l-37.1,37.1V350.7z"
+                        />
+                        <path
+                                id="path901"
+                                class="st2"
+                                d="M119.1,379.9V277.5c0-16.1,13-29.2,29.1-29.2c0,0,0.1,0,0.1,0h102.3l37.1-37.1H148.3 c-36.6,0.1-66.3,29.7-66.3,66.3V417L119.1,379.9z"
+                        />
+                    </g>
+                </svg>
+
+                <div class="text-xl ml-3 font-semibold">
+                    <p>Lanka</p>
+                    <p class="-mt-1">Express</p>
+                </div>
+            </div>
+
+            <p class="text-center p-2 mb-1 mt-2 text-sm text-black text-opacity-60">
+                A 6-digit OTP for your transaction was sent to your email, Enter it
+                here within a minute to verify your transaction.
+            </p>
+
+            <form th:action="@{/transactions/verify/__${refNo}__}" th:object="${otp}" method="post" class="my-2">
+                <label>
+                    <input
+                            class="w-full border h-12 p-3 rounded-md text-center"
+                            type="text"
+                            placeholder="Enter OTP"
+                            th:field="*{code}"
+                    />
+                </label>
+
+                <button class="w-full h-12 mt-3 bg-[#121619] text-white rounded-md font-semibold" type="submit">
+                    Submit
+                </button>
+            </form>
+
+            <div class="w-full flex flex-col items-center my-2">
+                <p class="text-center p-2 mb-1 mt-2 text-sm text-black text-opacity-60">Didn't receive the verification code?</p>
+                <button id="resend" onclick="resend()" class="font-semibold text-sm w-fit -mt-2">
+                    Resend Code
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

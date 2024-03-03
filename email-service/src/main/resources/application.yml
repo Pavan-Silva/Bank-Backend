@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: email-service
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: pavansilva320@gmail.com
+    password: znypiizdeofqixtn
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  config:
+    import: "optional:configserver:http://localhost:8088"

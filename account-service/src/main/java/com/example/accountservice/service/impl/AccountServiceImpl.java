@@ -67,6 +67,9 @@ public class AccountServiceImpl implements AccountService {
         if (account.getCurrentBalance() == null)
             account.setCurrentBalance(existingAcc.getCurrentBalance());
 
+        if (account.getFailedTransactionAttempts() == null)
+            account.setFailedTransactionAttempts(existingAcc.getFailedTransactionAttempts());
+
         return accountRepository.save(account);
     }
 
