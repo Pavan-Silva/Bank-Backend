@@ -2,9 +2,13 @@ package com.example.transactionservice.service.Impl;
 
 import com.example.transactionservice.client.AccountClient;
 import com.example.transactionservice.dto.AccountDetails;
+import com.example.transactionservice.dto.AccountStatus;
+import com.example.transactionservice.dto.ConfirmationRequest;
 import com.example.transactionservice.dto.TransactionInfo;
 import com.example.transactionservice.model.Transaction;
+import com.example.transactionservice.model.TransactionConfirmation;
 import com.example.transactionservice.model.TransactionStatus;
+import com.example.transactionservice.repository.TransactionConfirmationRepository;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +25,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     private final AccountClient accountClient;
     private final TransactionRepository transactionRepository;
+    private final TransactionConfirmationRepository transactionConfirmationRepository;
 
     @Override
     public Transaction findByParams(HashMap<String,String> params) {
@@ -37,30 +43,86 @@ public class TransactionServiceImpl implements TransactionService {
             return handleTransfer(transactionInfo);
     }
 
-    private Transaction handleMonoTransaction(TransactionInfo transactionInfo) {
-        AccountDetails sender = accountClient.findAccount(transactionInfo.getSenderId());
+    @Override
+    public void confirm(ConfirmationRequest confirmationRequest) {
+        TransactionConfirmation confirmation = transactionConfirmationRepository
+                .findByTransactionsRefNo_RefNo(confirmationRequest.getRefNo())
+                .orElseThrow();
 
-        if (sender != null) {
-            checkAccountStatus(sender);
-            BigDecimal accBalance;
+        Transaction transaction = transactionRepository.findByRefNo(confirmationRequest.getRefNo())
+                .orElseThrow();
 
-            if (transactionInfo.getTransactionType().getName().equals("Withdrawal")) {
-                checkBalance(sender.getCurrentBalance(), transactionInfo.getAmount());
-                accBalance = sender.getCurrentBalance().subtract(transactionInfo.getAmount());
-                sender.setCurrentBalance(accBalance);
-            }
+        AccountDetails sender = accountClient.findAccount(transaction.getAccHolderId());
+        AccountDetails receiver = accountClient.findAccount(confirmation.getReceiverId());
 
-            else if (transactionInfo.getTransactionType().getName().equals("Deposit")) {
-                accBalance = sender.getCurrentBalance().add(transactionInfo.getAmount());
-                sender.setCurrentBalance(accBalance);
+        if (confirmationRequest.getOtp().equals(confirmation.getOtp()) && confirmation.getAttempt() <=3) {
+            if (sender != null && receiver != null) {
+                checkAccountStatus(sender);
+                checkAccountStatus(receiver);
+
+                checkBalance(sender.getCurrentBalance(),transaction.getAmount());
+                BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
+                BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
+
+                receiver.setCurrentBalance(updatedReceiverAccBalance);
+                sender.setCurrentBalance(updatedSenderAccBalance);
+
+                TransactionStatus transactionStatus = TransactionStatus.builder()
+                        .id(3)
+                        .name("Completed")
+                        .build();
+
+                transaction.setTransactionStatus(transactionStatus);
+                transactionRepository.save(transaction);
+                transactionConfirmationRepository.delete(confirmation);
+
+                accountClient.updateAccount(sender);
+                accountClient.updateAccount(receiver);
             }
 
             else throw new RuntimeException();
 
-            Transaction pendingTransaction = dtoToTransaction(transactionInfo, accBalance);
-            Transaction transaction = transactionRepository.save(pendingTransaction);
+        } else if (confirmation.getAttempt() > 3) {
+            sender.setAccStatus(AccountStatus.builder()
+                    .id(2)
+                    .name("Disabled")
+                    .build());
 
             accountClient.updateAccount(sender);
+            throw new RuntimeException();
+
+        } else  {
+            confirmation.setAttempt(confirmation.getAttempt() + 1);
+            transactionConfirmationRepository.save(confirmation);
+            throw new RuntimeException();
+        }
+    }
+
+    private Transaction handleMonoTransaction(TransactionInfo transactionInfo) {
+        AccountDetails account = accountClient.findAccount(transactionInfo.getSenderId());
+
+        if (account != null) {
+            checkAccountStatus(account);
+            BigDecimal accBalance;
+
+            if (transactionInfo.getTransactionType().getName().equals("Withdrawal")) {
+                checkBalance(account.getCurrentBalance(), transactionInfo.getAmount());
+                accBalance = account.getCurrentBalance().subtract(transactionInfo.getAmount());
+                account.setCurrentBalance(accBalance);
+            }
+
+            else if (transactionInfo.getTransactionType().getName().equals("Deposit")) {
+                accBalance = account.getCurrentBalance().add(transactionInfo.getAmount());
+                account.setCurrentBalance(accBalance);
+            }
+
+            else throw new RuntimeException();
+
+            Transaction pendingTransaction = dtoToTransaction(transactionInfo);
+            pendingTransaction.setAccBalance(accBalance);
+            Transaction transaction = transactionRepository.save(pendingTransaction);
+
+            accountClient.updateAccount(account);
             return transaction;
         }
 
@@ -68,29 +130,22 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     private Transaction handleTransfer(TransactionInfo transactionInfo) {
-        AccountDetails sender = accountClient.findAccount(transactionInfo.getSenderId());
-        AccountDetails receiver = accountClient.findAccount(transactionInfo.getReceiverId());
+        Transaction pendingTransaction = dtoToTransaction(transactionInfo);
+        pendingTransaction.setAccBalance(BigDecimal.ZERO);
+        Transaction transaction = transactionRepository.save(pendingTransaction);
 
-        if (sender != null && receiver != null) {
-            checkAccountStatus(sender);
-            checkAccountStatus(receiver);
+        Random random = new Random();
 
-            checkBalance(sender.getCurrentBalance(),transactionInfo.getAmount());
-            BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transactionInfo.getAmount());
-            BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transactionInfo.getAmount());
+        transactionConfirmationRepository.save(
+                TransactionConfirmation.builder()
+                        .receiverId(transactionInfo.getReceiverId())
+                        .transactionsRefNo(transaction)
+                        .attempt(1)
+                        .otp(String.valueOf(random.nextInt(1000000)))
+                        .build()
+        );
 
-            receiver.setCurrentBalance(updatedReceiverAccBalance);
-            sender.setCurrentBalance(updatedSenderAccBalance);
-
-            Transaction pendingTransaction = dtoToTransaction(transactionInfo, updatedSenderAccBalance);
-            Transaction transaction = transactionRepository.save(pendingTransaction);
-
-            accountClient.updateAccount(sender);
-            accountClient.updateAccount(receiver);
-            return transaction;
-        }
-
-        else throw new RuntimeException();
+        return transaction;
     }
 
     private void checkBalance(BigDecimal balance, BigDecimal amount) {
@@ -103,7 +158,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new RuntimeException();
     }
 
-    private Transaction dtoToTransaction(TransactionInfo transactionInfo, BigDecimal balance) {
+    private Transaction dtoToTransaction(TransactionInfo transactionInfo) {
         TransactionStatus transactionStatus = TransactionStatus.builder()
                 .id(1)
                 .name("Pending")
@@ -111,7 +166,6 @@ public class TransactionServiceImpl implements TransactionService {
 
         return Transaction.builder()
                 .date(Instant.now())
-                .accBalance(balance)
                 .amount(transactionInfo.getAmount())
                 .accHolderId(transactionInfo.getSenderId())
                 .description(transactionInfo.getDescription())

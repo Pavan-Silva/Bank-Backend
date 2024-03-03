@@ -20,7 +20,7 @@ public class Transaction {
     @Id
     @Column(name = "ref_no", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Integer refNo;
 
     @NotNull
     @Column(name = "date", nullable = false)
