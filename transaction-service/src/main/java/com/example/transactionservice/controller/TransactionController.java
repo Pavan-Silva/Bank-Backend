@@ -1,5 +1,6 @@
 package com.example.transactionservice.controller;
 
+import com.example.transactionservice.dto.TransactionInfo;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.service.TransactionService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class TransactionController {
     }
 
     @PostMapping
-    public Transaction save(@RequestBody Transaction transaction){
-        return transactionService.save(transaction);
+    public Transaction save(@RequestBody TransactionInfo transactionInfo){
+        return transactionService.save(transactionInfo);
     }
 }

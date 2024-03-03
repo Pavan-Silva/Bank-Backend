@@ -3,8 +3,7 @@ package com.example.transactionservice.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -12,6 +11,9 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "transactions")
 public class Transaction {
 
@@ -29,12 +31,12 @@ public class Transaction {
     private BigDecimal amount;
 
     @NotNull
-    @Column(name = "receiver_id", nullable = false)
-    private Integer receiverId;
+    @Column(name = "acc_holder_id", nullable = false)
+    private Integer accHolderId;
 
     @NotNull
-    @Column(name = "sender_id", nullable = false)
-    private Integer senderId;
+    @Column(name = "acc_balance", nullable = false)
+    private BigDecimal accBalance;
 
     @Size(max = 100)
     @Column(name = "description", length = 100)
