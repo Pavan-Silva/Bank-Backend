@@ -2,6 +2,7 @@ package com.example.accountservice.service.impl;
 
 import com.example.accountservice.model.*;
 import com.example.accountservice.repository.AccountRepository;
+import com.example.accountservice.service.AccHolderService;
 import com.example.accountservice.service.AccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
+    private final AccHolderService accHolderService;
 
     @Override
     public Account findById(int id) {
@@ -19,6 +21,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account save(Account account) {
+        accHolderService.findById(account.getAccHolder().getId());
         return accountRepository.save(account);
     }
 

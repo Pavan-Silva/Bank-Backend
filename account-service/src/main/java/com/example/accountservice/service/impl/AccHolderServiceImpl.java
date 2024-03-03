@@ -19,11 +19,18 @@ public class AccHolderServiceImpl implements AccHolderService {
 
     @Override
     public AccHolder save(AccHolder accHolder) {
-        return accHolderRepository.save(accHolder);
+        boolean existsByNic = accHolderRepository.existsByNic(accHolder.getNic());
+        boolean existsByEmail = accHolderRepository.existsByEmail(accHolder.getEmail());
+        boolean existsByMobile = accHolderRepository.existsByMobile(accHolder.getMobile());
+
+        if (!existsByEmail && !existsByNic && !existsByMobile)
+            return accHolderRepository.save(accHolder);
+        else throw new RuntimeException();
     }
 
     @Override
     public AccHolder update(AccHolder accHolder) {
+        AccHolder existingAccHolder = findById(accHolder.getId());
         return accHolderRepository.save(accHolder);
     }
 
