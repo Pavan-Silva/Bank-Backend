@@ -4,11 +4,9 @@ import com.example.transactionservice.dto.Otp;
 import com.example.transactionservice.dto.TransactionInfo;
 import com.example.transactionservice.model.Transaction;
 
-import java.util.HashMap;
-
 public interface TransactionService {
 
-    Transaction findByParams(HashMap<String,String> params);
+    boolean isVerifiableTransaction(Integer refNo);
 
     Transaction save(TransactionInfo transactionInfo);
 

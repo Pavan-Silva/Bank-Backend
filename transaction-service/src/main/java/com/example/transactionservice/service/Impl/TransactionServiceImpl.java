@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Random;
 
 @Service
@@ -29,8 +28,13 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionConfirmationRepository transactionConfirmationRepository;
 
     @Override
-    public Transaction findByParams(HashMap<String,String> params) {
-        return null;
+    public boolean isVerifiableTransaction(Integer refNo) {
+        Transaction transaction = transactionRepository.findByRefNo(refNo).orElseThrow();
+
+        boolean isPending = transaction.getTransactionStatus().getName().equals("Pending");
+        boolean isNotExpired = transaction.getDate().plusSeconds(60).isAfter(Instant.now());
+
+        return isPending && isNotExpired;
     }
 
     @Override

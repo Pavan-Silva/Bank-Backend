@@ -16,9 +16,13 @@ public class VerificationPageController {
 
     @GetMapping( "/{refNo}")
     public String showVerificationPage(Model model, @PathVariable Integer refNo) {
-        model.addAttribute("otp", new Otp());
-        model.addAttribute("refNo", refNo);
-        return "otp-verification";
+        if (transactionService.isVerifiableTransaction(refNo)) {
+            model.addAttribute("otp", new Otp());
+            model.addAttribute("refNo", refNo);
+            return "otp-verification";
+        }
+
+        return null;
     }
 
     @PostMapping("/{refNo}")

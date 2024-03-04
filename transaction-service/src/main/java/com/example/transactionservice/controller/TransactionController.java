@@ -6,8 +6,6 @@ import com.example.transactionservice.service.TransactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/transactions")
@@ -16,8 +14,8 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @GetMapping
-    public Transaction find(@RequestParam HashMap<String,String> params) {
-        return transactionService.findByParams(params);
+    public Transaction find(@RequestParam Integer refNo) {
+        return null;
     }
 
     @PostMapping
