@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Otp {
+public class OtpRequest {
 
     private String code;
 }

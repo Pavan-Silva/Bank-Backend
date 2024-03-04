@@ -1,16 +1,16 @@
 package com.example.transactionservice.service;
 
-import com.example.transactionservice.dto.Otp;
-import com.example.transactionservice.dto.TransactionInfo;
+import com.example.transactionservice.dto.OtpRequest;
+import com.example.transactionservice.dto.TransactionRequest;
 import com.example.transactionservice.model.Transaction;
 
 public interface TransactionService {
 
     boolean isVerifiableTransaction(Integer refNo);
 
-    Transaction save(TransactionInfo transactionInfo);
+    Transaction save(TransactionRequest transactionRequest);
 
-    boolean verify(Integer refNo, Otp otp);
+    Transaction verify(Integer refNo, OtpRequest otpRequest);
 
     void resendOtp(Integer refNo);
 }
