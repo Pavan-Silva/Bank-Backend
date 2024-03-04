@@ -1,5 +1,7 @@
 package com.example.accountservice.service.impl;
 
+import com.example.accountservice.exception.ResourceAlreadyExistsException;
+import com.example.accountservice.exception.ResourceNotFoundException;
 import com.example.accountservice.model.AccHolder;
 import com.example.accountservice.repository.AccHolderRepository;
 import com.example.accountservice.service.AccHolderService;
@@ -14,7 +16,8 @@ public class AccHolderServiceImpl implements AccHolderService {
 
     @Override
     public AccHolder findById(int id) {
-        return accHolderRepository.findById(id).orElseThrow();
+        return accHolderRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Couldn't find account holder"));
     }
 
     @Override
@@ -25,17 +28,37 @@ public class AccHolderServiceImpl implements AccHolderService {
 
         if (!existsByEmail && !existsByNic && !existsByMobile)
             return accHolderRepository.save(accHolder);
-        else throw new RuntimeException();
+        else throw new ResourceAlreadyExistsException("Account holder already exists");
     }
 
     @Override
     public AccHolder update(AccHolder accHolder) {
         AccHolder existingAccHolder = findById(accHolder.getId());
+
+        if (accHolder.getMobile() == null)
+            accHolder.setMobile(existingAccHolder.getMobile());
+
+        if (accHolder.getNic() == null)
+            accHolder.setNic(existingAccHolder.getNic());
+
+        if (accHolder.getEmail() == null)
+            accHolder.setEmail(existingAccHolder.getEmail());
+
+        if (accHolder.getAddress() == null)
+            accHolder.setAddress(existingAccHolder.getAddress());
+
+        if (accHolder.getName() == null)
+            accHolder.setName(existingAccHolder.getName());
+
+        if (accHolder.getGender() == null)
+            accHolder.setGender(existingAccHolder.getGender());
+
         return accHolderRepository.save(accHolder);
     }
 
     @Override
     public void deleteById(int id) {
+        findById(id);
         accHolderRepository.deleteById(id);
     }
 }

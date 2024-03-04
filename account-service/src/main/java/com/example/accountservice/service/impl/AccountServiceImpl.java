@@ -1,5 +1,6 @@
 package com.example.accountservice.service.impl;
 
+import com.example.accountservice.exception.ResourceNotFoundException;
 import com.example.accountservice.model.*;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccHolderService;
@@ -16,7 +17,8 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account findById(int id) {
-        return accountRepository.findById(id).orElseThrow();
+        return accountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("No any accounts associated with provided info"));
     }
 
     @Override
@@ -27,7 +29,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public Account update(Account account) {
-        Account existingAcc = accountRepository.findById(account.getId()).orElseThrow();
+        Account existingAcc = findById(account.getId());
 
         if (account.getAccHolder() == null) {
             AccHolder accHolder = AccHolder.builder()
@@ -75,7 +77,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void deleteById(int id) {
-        accountRepository.findById(id).orElseThrow();
+        findById(id);
         accountRepository.deleteById(id);
     }
 }
