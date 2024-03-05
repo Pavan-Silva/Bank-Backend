@@ -1,6 +1,6 @@
 package com.example.accountservice.service.impl;
 
-import com.example.accountservice.exception.ResourceNotFoundException;
+import com.example.accountservice.exception.NotFoundException;
 import com.example.accountservice.model.*;
 import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccHolderService;
@@ -18,7 +18,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Account findById(int id) {
         return accountRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("No any accounts associated with provided info"));
+                .orElseThrow(() -> new NotFoundException("No any accounts associated with provided info"));
     }
 
     @Override

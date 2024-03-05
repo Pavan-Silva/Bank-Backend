@@ -1,7 +1,7 @@
 package com.example.accountservice.service.impl;
 
-import com.example.accountservice.exception.ResourceAlreadyExistsException;
-import com.example.accountservice.exception.ResourceNotFoundException;
+import com.example.accountservice.exception.BadRequestException;
+import com.example.accountservice.exception.NotFoundException;
 import com.example.accountservice.model.AccHolder;
 import com.example.accountservice.repository.AccHolderRepository;
 import com.example.accountservice.service.AccHolderService;
@@ -17,7 +17,7 @@ public class AccHolderServiceImpl implements AccHolderService {
     @Override
     public AccHolder findById(int id) {
         return accHolderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Couldn't find account holder"));
+                .orElseThrow(() -> new NotFoundException("Couldn't find account holder"));
     }
 
     @Override
@@ -28,7 +28,7 @@ public class AccHolderServiceImpl implements AccHolderService {
 
         if (!existsByEmail && !existsByNic && !existsByMobile)
             return accHolderRepository.save(accHolder);
-        else throw new ResourceAlreadyExistsException("Account holder already exists");
+        else throw new BadRequestException("Account holder already exists");
     }
 
     @Override

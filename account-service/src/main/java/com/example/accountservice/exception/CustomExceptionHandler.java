@@ -11,8 +11,8 @@ import java.time.Instant;
 
 @ControllerAdvice
 public class CustomExceptionHandler {
-    @ExceptionHandler({ResourceNotFoundException.class})
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException exception, HttpServletRequest req) {
+    @ExceptionHandler({NotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException exception, HttpServletRequest req) {
         return new ResponseEntity<>(
                 ErrorResponse.builder()
                         .status(HttpStatus.NOT_FOUND.value())
@@ -24,8 +24,8 @@ public class CustomExceptionHandler {
                 , HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler({ResourceAlreadyExistsException.class})
-    public ResponseEntity<ErrorResponse> handleResourceAlreadyExistsException(ResourceAlreadyExistsException exception, HttpServletRequest req) {
+    @ExceptionHandler({BadRequestException.class})
+    public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException exception, HttpServletRequest req) {
         return new ResponseEntity<>(
                 ErrorResponse.builder()
                         .status(HttpStatus.BAD_REQUEST.value())
