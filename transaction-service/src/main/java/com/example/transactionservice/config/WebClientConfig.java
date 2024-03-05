@@ -18,7 +18,10 @@ public class WebClientConfig {
 
     @Bean
     public WebClient accountWebClient() {
-        return WebClient.builder().baseUrl("http://account-service").filter(filterFunction).build();
+        return WebClient.builder()
+                .baseUrl("http://account-service").
+                filter(filterFunction)
+                .build();
     }
 
     @Bean
@@ -32,7 +35,10 @@ public class WebClientConfig {
 
     @Bean
     public WebClient emailWebClient() {
-        return WebClient.builder().baseUrl("http://email-service").filter(filterFunction).build();
+        return WebClient.builder()
+                .baseUrl("http://email-service")
+                .filter(filterFunction)
+                .build();
     }
 
     @Bean

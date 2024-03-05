@@ -25,7 +25,7 @@ public class TransactionController {
     }
 
     @PostMapping("/verify/{refNo}")
-    public Transaction verify(@PathVariable Integer refNo, @ModelAttribute OtpRequest otpRequest) {
+    public Transaction verify(@PathVariable Integer refNo, @RequestBody OtpRequest otpRequest) {
         return transactionService.verify(refNo, otpRequest);
     }
 
