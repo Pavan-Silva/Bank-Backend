@@ -6,6 +6,8 @@ import com.example.transactionservice.model.Transaction;
 
 public interface TransactionService {
 
+    Transaction findByRefNo(Integer refNo);
+
     Transaction save(TransactionRequest transactionRequest);
 
     Transaction verify(Integer refNo, OtpRequest otpRequest);

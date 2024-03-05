@@ -3,6 +3,8 @@ package com.example.transactionservice.service.Impl;
 import com.example.transactionservice.client.AccountClient;
 import com.example.transactionservice.client.EmailClient;
 import com.example.transactionservice.dto.*;
+import com.example.transactionservice.exception.BadRequestException;
+import com.example.transactionservice.exception.NotFoundException;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.model.TransactionConfirmation;
 import com.example.transactionservice.model.TransactionStatus;
@@ -28,6 +30,12 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionConfirmationRepository transactionConfirmationRepository;
 
     @Override
+    public Transaction findByRefNo(Integer refNo) {
+        return transactionRepository.findByRefNo(refNo)
+                .orElseThrow(() -> new NotFoundException("Invalid transaction"));
+    }
+
+    @Override
     public Transaction save(TransactionRequest transactionRequest) {
         String transactionType = transactionRequest.getTransactionType().getName();
 
@@ -40,8 +48,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction verify(Integer refNo, OtpRequest otpRequest) {
-        Transaction transaction = transactionRepository.findByRefNo(refNo)
-                .orElseThrow();
+        Transaction transaction = findByRefNo(refNo);
 
         boolean isPending = transaction.getTransactionStatus().getName().equals("Pending");
         boolean isNotExpired = transaction.getDate().plusSeconds(60).isAfter(Instant.now());
@@ -86,7 +93,7 @@ public class TransactionServiceImpl implements TransactionService {
                     return completedTransaction;
                 }
 
-                else throw new RuntimeException("Invalid receiver");
+                return null;
 
             } else if (sender.getFailedTransactionAttempts() >= 3) {
                 sender.setAccStatus(AccountStatus.builder()
@@ -95,12 +102,12 @@ public class TransactionServiceImpl implements TransactionService {
                         .build());
 
                 accountClient.updateAccount(sender);
-                throw new RuntimeException("Account Disabled");
+                throw new BadRequestException("Account Disabled");
 
             } else {
                 sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
                 accountClient.updateAccount(sender);
-                throw new RuntimeException("Failed Attempt");
+                throw new BadRequestException("Failed Attempt");
             }
         }
 
@@ -112,15 +119,13 @@ public class TransactionServiceImpl implements TransactionService {
 
             transaction.setTransactionStatus(transactionStatusFailed);
             transactionRepository.save(transaction);
-            throw new RuntimeException("Transaction Expired");
+            throw new BadRequestException("Transaction Expired");
         }
     }
 
     @Override
     public void resendOtp(Integer refNo) {
-        Transaction transaction = transactionRepository.findByRefNo(refNo)
-                .orElseThrow(() -> new RuntimeException("Invalid Transaction"));
-
+        Transaction transaction = findByRefNo(refNo);
         AccountDetails account = accountClient.findAccount(transaction.getAccHolderId());
         sendVerificationCode(account, transaction);
     }

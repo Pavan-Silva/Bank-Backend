@@ -16,7 +16,7 @@ public class TransactionController {
 
     @GetMapping
     public Transaction find(@RequestParam Integer refNo) {
-        return null;
+        return transactionService.findByRefNo(refNo);
     }
 
     @PostMapping
