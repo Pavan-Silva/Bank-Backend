@@ -28,4 +28,9 @@ public class TransactionController {
     public Transaction verify(@PathVariable Integer refNo, @ModelAttribute OtpRequest otpRequest) {
         return transactionService.verify(refNo, otpRequest);
     }
+
+    @GetMapping("/verify/{refNo}/resend")
+    public void resendOtp(@PathVariable Integer refNo) {
+        transactionService.resendOtp(refNo);
+    }
 }

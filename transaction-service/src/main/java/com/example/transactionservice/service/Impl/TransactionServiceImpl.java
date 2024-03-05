@@ -28,16 +28,6 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionConfirmationRepository transactionConfirmationRepository;
 
     @Override
-    public boolean isVerifiableTransaction(Integer refNo) {
-        Transaction transaction = transactionRepository.findByRefNo(refNo).orElseThrow();
-
-        boolean isPending = transaction.getTransactionStatus().getName().equals("Pending");
-        boolean isNotExpired = transaction.getDate().plusSeconds(60).isAfter(Instant.now());
-
-        return isPending && isNotExpired;
-    }
-
-    @Override
     public Transaction save(TransactionRequest transactionRequest) {
         String transactionType = transactionRequest.getTransactionType().getName();
 
@@ -50,63 +40,79 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction verify(Integer refNo, OtpRequest otpRequest) {
-        TransactionConfirmation confirmation = transactionConfirmationRepository
-                .findByTransaction_RefNo(refNo)
-                .orElseThrow();
-
         Transaction transaction = transactionRepository.findByRefNo(refNo)
                 .orElseThrow();
 
-        AccountDetails sender = accountClient.findAccount(transaction.getAccHolderId());
-        AccountDetails receiver = accountClient.findAccount(confirmation.getReceiverId());
+        boolean isPending = transaction.getTransactionStatus().getName().equals("Pending");
+        boolean isNotExpired = transaction.getDate().plusSeconds(60).isAfter(Instant.now());
 
-        boolean isOtpValid = otpRequest.getCode().equals(confirmation.getOtp());
-        boolean isValidTimePeriod = confirmation.getExpirationTime().isAfter(Instant.now());
+        if (isPending && isNotExpired) {
+            TransactionConfirmation confirmation = transactionConfirmationRepository
+                    .findByTransaction_RefNo(refNo)
+                    .orElseThrow();
 
-        if (isOtpValid && sender.getFailedTransactionAttempts() <3 && isValidTimePeriod) {
-            if (receiver != null) {
-                checkAccountStatus(sender);
-                checkAccountStatus(receiver);
+            AccountDetails sender = accountClient.findAccount(transaction.getAccHolderId());
+            AccountDetails receiver = accountClient.findAccount(confirmation.getReceiverId());
 
-                checkBalance(sender.getCurrentBalance(),transaction.getAmount());
-                BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
-                BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
+            boolean isOtpValid = otpRequest.getCode().equals(confirmation.getOtp());
+            boolean isValidTimePeriod = confirmation.getExpirationTime().isAfter(Instant.now());
 
-                receiver.setCurrentBalance(updatedReceiverAccBalance);
-                sender.setCurrentBalance(updatedSenderAccBalance);
-                sender.setFailedTransactionAttempts(0);
+            if (isOtpValid && sender.getFailedTransactionAttempts() <3 && isValidTimePeriod) {
+                if (receiver != null) {
+                    checkAccountStatus(sender);
+                    checkAccountStatus(receiver);
 
-                TransactionStatus transactionStatus = TransactionStatus.builder()
-                        .id(3)
-                        .name("Completed")
-                        .build();
+                    checkBalance(sender.getCurrentBalance(),transaction.getAmount());
+                    BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
+                    BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
 
-                transaction.setTransactionStatus(transactionStatus);
-                transaction.setAccBalance(updatedSenderAccBalance);
-                Transaction completedTransaction = transactionRepository.save(transaction);
-                transactionConfirmationRepository.delete(confirmation);
+                    receiver.setCurrentBalance(updatedReceiverAccBalance);
+                    sender.setCurrentBalance(updatedSenderAccBalance);
+                    sender.setFailedTransactionAttempts(0);
+
+                    TransactionStatus transactionStatus = TransactionStatus.builder()
+                            .id(3)
+                            .name("Completed")
+                            .build();
+
+                    transaction.setTransactionStatus(transactionStatus);
+                    transaction.setAccBalance(updatedSenderAccBalance);
+                    Transaction completedTransaction = transactionRepository.save(transaction);
+                    transactionConfirmationRepository.delete(confirmation);
+
+                    accountClient.updateAccount(sender);
+                    accountClient.updateAccount(receiver);
+
+                    return completedTransaction;
+                }
+
+                else throw new RuntimeException("Invalid receiver");
+
+            } else if (sender.getFailedTransactionAttempts() >= 3) {
+                sender.setAccStatus(AccountStatus.builder()
+                        .id(2)
+                        .name("Disabled")
+                        .build());
 
                 accountClient.updateAccount(sender);
-                accountClient.updateAccount(receiver);
+                throw new RuntimeException("Account Disabled");
 
-                return completedTransaction;
+            } else {
+                sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
+                accountClient.updateAccount(sender);
+                throw new RuntimeException("Failed Attempt");
             }
+        }
 
-            else throw new RuntimeException();
+        else {
+            TransactionStatus transactionStatusFailed = TransactionStatus.builder()
+                    .id(4)
+                    .name("Failed")
+                    .build();
 
-        } else if (sender.getFailedTransactionAttempts() >= 3) {
-            sender.setAccStatus(AccountStatus.builder()
-                    .id(2)
-                    .name("Disabled")
-                    .build());
-
-            accountClient.updateAccount(sender);
-            throw new RuntimeException("Account Disabled");
-
-        } else {
-            sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
-            accountClient.updateAccount(sender);
-            throw new RuntimeException("Failed Attempt");
+            transaction.setTransactionStatus(transactionStatusFailed);
+            transactionRepository.save(transaction);
+            throw new RuntimeException("Transaction Expired");
         }
     }
 

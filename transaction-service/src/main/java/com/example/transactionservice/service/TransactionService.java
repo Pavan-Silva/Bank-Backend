@@ -6,8 +6,6 @@ import com.example.transactionservice.model.Transaction;
 
 public interface TransactionService {
 
-    boolean isVerifiableTransaction(Integer refNo);
-
     Transaction save(TransactionRequest transactionRequest);
 
     Transaction verify(Integer refNo, OtpRequest otpRequest);
