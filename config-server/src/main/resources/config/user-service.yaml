@@ -1,0 +1,20 @@
+server:
+  port: 8084
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+
+app:
+  config:
+    keycloak:
+      server-url: http://localhost:9090
+      realm: microservices
+      clientId: microservices-admin
+      client-secret: GaMOPLfQq69uwdZwHOlewqKKioCu2UZS

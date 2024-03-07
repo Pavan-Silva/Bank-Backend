@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .authorizeExchange(
                         exchange ->
                                 exchange.pathMatchers("/eureka/**").permitAll()
+                                        .pathMatchers("/users/**").permitAll()
                                         .pathMatchers(HttpMethod.POST,"/transactions/**").hasRole("STAFF_MEMBER")
                                         .pathMatchers(HttpMethod.DELETE,"/accounts/**").hasRole("ADMIN")
                                         .anyExchange().authenticated()
