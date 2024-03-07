@@ -36,7 +36,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Transaction save(TransactionRequest transactionRequest) {
+    public Transaction saveDomesticTransaction(TransactionRequest transactionRequest) {
         String transactionType = transactionRequest.getTransactionType().getName();
 
         if (transactionType.equals("Deposit") || transactionType.equals("Withdrawal"))
@@ -44,6 +44,16 @@ public class TransactionServiceImpl implements TransactionService {
 
         else
             return handleTransfer(transactionRequest);
+    }
+
+    @Override
+    public Transaction saveOnlineTransaction(TransactionRequest transactionRequest) {
+        String transactionType = transactionRequest.getTransactionType().getName();
+
+        if (transactionType.equals("Deposit") || transactionType.equals("Withdrawal"))
+            throw new BadRequestException("Invalid transaction type");
+
+        else return handleTransfer(transactionRequest);
     }
 
     @Override

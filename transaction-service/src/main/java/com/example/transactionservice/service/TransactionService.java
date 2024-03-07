@@ -8,7 +8,9 @@ public interface TransactionService {
 
     Transaction findByRefNo(Integer refNo);
 
-    Transaction save(TransactionRequest transactionRequest);
+    Transaction saveDomesticTransaction(TransactionRequest transactionRequest);
+
+    Transaction saveOnlineTransaction(TransactionRequest transactionRequest);
 
     Transaction verify(Integer refNo, OtpRequest otpRequest);
 

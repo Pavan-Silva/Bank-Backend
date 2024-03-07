@@ -18,8 +18,8 @@ public class WebClientConfig {
     @Bean
     public WebClient accountHolderWebClient() {
         return WebClient.builder()
-                .baseUrl("http://account-service").
-                filter(filterFunction)
+                .baseUrl("http://account-service")
+                .filter(filterFunction)
                 .build();
     }
 

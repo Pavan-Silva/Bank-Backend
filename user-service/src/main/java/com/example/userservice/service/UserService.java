@@ -19,6 +19,15 @@ public class UserService {
     private final KeycloakUserService keycloakUserService;
     private final AccHolderClient accHolderClient;
 
+    public UserResponse findUser(Long userId) {
+        UserRepresentation user = keycloakUserService.findUser(userId.toString());
+
+        return UserResponse.builder()
+                .authId(user.getId())
+                .username(user.getUsername())
+                .build();
+    }
+
     public UserResponse createUser(UserRequest userRequest) {
         List<UserRepresentation> userRepresentations = keycloakUserService.findUserByUsername(userRequest.getUsername());
 
@@ -29,7 +38,14 @@ public class UserService {
         AccHolder accHolder = accHolderClient.findAccount(userRequest.getAccHolderId());
 
         if (accHolder.getEmail() != null) {
-            UserRepresentation userRepresentation = generateRepresentation(userRequest, accHolder);
+            UserRepresentation userRepresentation = generateUserRepresentation(
+                    userRequest.getUsername(),
+                    accHolder.getEmail()
+            );
+
+            userRepresentation.setCredentials(Collections.singletonList(
+                    generateCredentialRepresentation(userRequest.getPassword()))
+            );
 
             Integer userCreationResponse = keycloakUserService.createUser(userRepresentation);
 
@@ -46,30 +62,42 @@ public class UserService {
         throw new RuntimeException("We couldn't find user under given identification. Please check and retry");
     }
 
-    public void updateCredentials(UserRequest req) {
-        UserRepresentation userRepresentation = keycloakUserService.findUser("");
-        userRepresentation.setEnabled(true);
-        userRepresentation.setEmailVerified(true);
+    public void updateUser(Long userId, UserRequest req) {
+        UserRepresentation userRepresentation = keycloakUserService.findUser(userId.toString());
+
+        if (req.getUsername() != null)
+            userRepresentation.setUsername(req.getUsername());
+
+        if (req.getPassword() != null)
+            userRepresentation.setCredentials(Collections.singletonList(
+                    generateCredentialRepresentation(req.getPassword())
+            ));
+
         keycloakUserService.updateUser(userRepresentation);
     }
 
-    public void disableUser() {
-        UserRepresentation userRepresentation = keycloakUserService.findUser("");
+    public void disableUser(Long userId) {
+        UserRepresentation userRepresentation = keycloakUserService.findUser(userId.toString());
         userRepresentation.setEnabled(false);
         keycloakUserService.updateUser(userRepresentation);
     }
 
-    private static UserRepresentation generateRepresentation(UserRequest userRequest, AccHolder accHolder) {
+    private UserRepresentation generateUserRepresentation(String username, String email) {
         UserRepresentation userRepresentation = new UserRepresentation();
-        userRepresentation.setUsername(userRequest.getUsername());
-        userRepresentation.setEmail(accHolder.getEmail());
+        userRepresentation.setRealmRoles(Collections.singletonList("USER"));
+        userRepresentation.setUsername(username);
+        userRepresentation.setEmail(email);
         userRepresentation.setEmailVerified(false);
         userRepresentation.setEnabled(false);
 
-        CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
-        credentialRepresentation.setValue(userRequest.getPassword());
-        credentialRepresentation.setTemporary(false);
-        userRepresentation.setCredentials(Collections.singletonList(credentialRepresentation));
         return userRepresentation;
+    }
+
+    private CredentialRepresentation generateCredentialRepresentation(String password) {
+        CredentialRepresentation credentialRepresentation = new CredentialRepresentation();
+        credentialRepresentation.setValue(password);
+        credentialRepresentation.setTemporary(false);
+
+        return credentialRepresentation;
     }
 }

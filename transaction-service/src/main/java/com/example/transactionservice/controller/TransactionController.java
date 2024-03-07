@@ -14,22 +14,27 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @GetMapping
-    public Transaction find(@RequestParam Integer refNo) {
+    @GetMapping("/{refNo}")
+    public Transaction find(@PathVariable Integer refNo) {
         return transactionService.findByRefNo(refNo);
     }
 
     @PostMapping
-    public Transaction save(@RequestBody TransactionRequest transactionRequest){
-        return transactionService.save(transactionRequest);
+    public Transaction save(@RequestBody TransactionRequest transactionRequest) {
+        return transactionService.saveDomesticTransaction(transactionRequest);
     }
 
-    @PostMapping("/verify/{refNo}")
+    @PostMapping("/online")
+    public Transaction saveOnlineTransaction(@RequestBody TransactionRequest transactionRequest){
+        return transactionService.saveOnlineTransaction(transactionRequest);
+    }
+
+    @PostMapping("/online/verify/{refNo}")
     public Transaction verify(@PathVariable Integer refNo, @RequestBody OtpRequest otpRequest) {
         return transactionService.verify(refNo, otpRequest);
     }
 
-    @GetMapping("/verify/{refNo}/resend")
+    @GetMapping("/online/verify/{refNo}/resend")
     public void resendOtp(@PathVariable Integer refNo) {
         transactionService.resendOtp(refNo);
     }
