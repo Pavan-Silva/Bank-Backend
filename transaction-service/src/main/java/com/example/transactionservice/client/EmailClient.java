@@ -1,13 +1,13 @@
 package com.example.transactionservice.client;
 
 import com.example.transactionservice.dto.Mail;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.service.annotation.HttpExchange;
-import org.springframework.web.service.annotation.PostExchange;
 
-@HttpExchange
+@FeignClient(name = "emailClient", url = "http://localhost:8083/email")
 public interface EmailClient {
 
-    @PostExchange("/email/send")
+    @PostMapping("/send")
     void sendMail(@RequestBody Mail mail);
 }

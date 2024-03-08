@@ -1,18 +1,23 @@
 package com.example.transactionservice.client;
 
+import com.example.transactionservice.config.OAuthFeignConfig;
 import com.example.transactionservice.dto.AccountDetails;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.service.annotation.GetExchange;
-import org.springframework.web.service.annotation.HttpExchange;
-import org.springframework.web.service.annotation.PutExchange;
 
-@HttpExchange
+@FeignClient(
+        name = "accountClient",
+        url = "http://localhost:8081/accounts",
+        configuration = OAuthFeignConfig.class
+)
 public interface AccountClient {
 
-    @GetExchange("/accounts/{id}")
+    @GetMapping("/{id}")
     AccountDetails findAccount(@PathVariable int id);
 
-    @PutExchange("/accounts")
+    @PutMapping
     void updateAccount(@RequestBody AccountDetails accountDetails);
 }
