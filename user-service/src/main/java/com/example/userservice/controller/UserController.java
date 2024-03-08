@@ -1,5 +1,6 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.dto.PasswordResetRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import com.example.userservice.service.UserService;
@@ -19,7 +20,7 @@ public class UserController {
         return ResponseEntity.ok(userService.findUser(id));
     }
 
-    @GetMapping("/disable/{id}")
+    @GetMapping("/{id}/disable")
     public void disableUser(@PathVariable Long id) {
         userService.disableUser(id);
     }
@@ -29,8 +30,8 @@ public class UserController {
         return ResponseEntity.ok(userService.createUser(request));
     }
 
-    @PutMapping("/update/{id}")
-    public void updateUser(@PathVariable Long id, @RequestBody UserRequest user) {
+    @PutMapping("/{id}/reset")
+    public void updateUser(@PathVariable Long id, @RequestBody PasswordResetRequest user) {
         userService.updateUser(id, user);
     }
 }

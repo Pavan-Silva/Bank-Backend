@@ -2,6 +2,7 @@ package com.example.userservice.service;
 
 import com.example.userservice.client.AccHolderClient;
 import com.example.userservice.dto.AccHolder;
+import com.example.userservice.dto.PasswordResetRequest;
 import com.example.userservice.dto.UserRequest;
 import com.example.userservice.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class UserService {
         UserRepresentation user = keycloakUserService.findUser(userId.toString());
 
         return UserResponse.builder()
-                .authId(user.getId())
+                .userId(user.getId())
                 .username(user.getUsername())
                 .build();
     }
@@ -53,7 +54,7 @@ public class UserService {
                 List<UserRepresentation> users = keycloakUserService.findUserByUsername(userRequest.getUsername());
 
                 return UserResponse.builder()
-                        .authId(users.get(0).getId())
+                        .userId(users.get(0).getId())
                         .username(users.get(0).getUsername())
                         .build();
             }
@@ -62,15 +63,12 @@ public class UserService {
         throw new RuntimeException("We couldn't find user under given identification. Please check and retry");
     }
 
-    public void updateUser(Long userId, UserRequest req) {
+    public void updateUser(Long userId, PasswordResetRequest req) {
         UserRepresentation userRepresentation = keycloakUserService.findUser(userId.toString());
 
-        if (req.getUsername() != null)
-            userRepresentation.setUsername(req.getUsername());
-
-        if (req.getPassword() != null)
+        if (req.getNewPassword() != null)
             userRepresentation.setCredentials(Collections.singletonList(
-                    generateCredentialRepresentation(req.getPassword())
+                    generateCredentialRepresentation(req.getNewPassword())
             ));
 
         keycloakUserService.updateUser(userRepresentation);
