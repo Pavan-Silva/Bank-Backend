@@ -3,7 +3,6 @@ package com.example.apigateway.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,11 +28,7 @@ public class SecurityConfig {
                                 exchange.pathMatchers("/eureka/**").permitAll()
                                         .pathMatchers("/actuator/**").permitAll()
                                         .pathMatchers("/users/register").permitAll()
-
-                                        .pathMatchers("/users/all", "/email/**").hasRole("ADMIN")
-                                        .pathMatchers("/transactions/online/**", "/users/**").hasRole("USER")
-                                        .pathMatchers(HttpMethod.GET,"/transactions/**","/accounts/**").hasRole("USER")
-                                        .pathMatchers("/transactions/**","/accounts/**").hasRole("STAFF_MEMBER")
+                                        .pathMatchers("/email/**").hasRole("ADMIN")
                                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oath -> oath.jwt(
