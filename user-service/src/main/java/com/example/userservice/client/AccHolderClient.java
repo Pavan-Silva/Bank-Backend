@@ -1,13 +1,18 @@
 package com.example.userservice.client;
 
+import com.example.userservice.config.OAuthFeignConfig;
 import com.example.userservice.dto.AccHolder;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.service.annotation.GetExchange;
-import org.springframework.web.service.annotation.HttpExchange;
 
-@HttpExchange
+@FeignClient(
+        name = "accHolder-client",
+        url = "http://localhost:8081/accounts/holders",
+        configuration = OAuthFeignConfig.class
+)
 public interface AccHolderClient {
 
-    @GetExchange("/accounts/holders/{id}")
+    @GetMapping("/accounts/holders/{id}")
     AccHolder findAccount(@PathVariable int id);
 }

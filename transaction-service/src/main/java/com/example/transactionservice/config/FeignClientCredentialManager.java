@@ -12,13 +12,13 @@ import java.util.Collection;
 import java.util.Collections;
 
 @RequiredArgsConstructor
-public class FeignCredentialManager {
+public class FeignClientCredentialManager {
 
     private final OAuth2AuthorizedClientManager manager;
     private final Authentication principal;
     private final ClientRegistration clientRegistration;
 
-    public FeignCredentialManager (OAuth2AuthorizedClientManager manager, ClientRegistration clientRegistration) {
+    public FeignClientCredentialManager(OAuth2AuthorizedClientManager manager, ClientRegistration clientRegistration) {
         this.manager = manager;
         this.clientRegistration = clientRegistration;
         this.principal = createPrincipal();
@@ -76,9 +76,9 @@ public class FeignCredentialManager {
             }
 
             return client.getAccessToken().getTokenValue();
-        } catch (Exception exp) {
 
+        } catch (Exception exp) {
+            throw new RuntimeException("token request failed");
         }
-        return null;
     }
 }

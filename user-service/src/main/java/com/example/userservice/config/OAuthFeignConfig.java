@@ -1,4 +1,4 @@
-package com.example.transactionservice.config;
+package com.example.userservice.config;
 
 import feign.RequestInterceptor;
 import lombok.RequiredArgsConstructor;

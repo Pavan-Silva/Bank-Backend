@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(
-        name = "accountClient",
+        name = "account-client",
         url = "http://localhost:8081/accounts",
         configuration = OAuthFeignConfig.class
 )
