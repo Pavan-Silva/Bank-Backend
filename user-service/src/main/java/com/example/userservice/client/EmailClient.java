@@ -1,6 +1,6 @@
-package com.example.transactionservice.client;
+package com.example.userservice.client;
 
-import com.example.transactionservice.dto.Mail;
+import com.example.userservice.dto.request.Mail;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

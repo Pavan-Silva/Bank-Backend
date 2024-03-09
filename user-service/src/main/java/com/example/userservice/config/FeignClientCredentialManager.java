@@ -1,6 +1,5 @@
 package com.example.userservice.config;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
@@ -11,7 +10,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import java.util.Collection;
 import java.util.Collections;
 
-@RequiredArgsConstructor
 public class FeignClientCredentialManager {
 
     private final OAuth2AuthorizedClientManager manager;

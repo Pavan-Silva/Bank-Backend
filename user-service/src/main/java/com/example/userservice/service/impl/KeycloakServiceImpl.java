@@ -1,6 +1,7 @@
-package com.example.userservice.service;
+package com.example.userservice.service.impl;
 
 import com.example.userservice.config.KeycloakManager;
+import com.example.userservice.service.KeycloakService;
 import jakarta.ws.rs.core.Response;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.resource.UserResource;
@@ -11,10 +12,11 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class KeycloakUserService {
+public class KeycloakServiceImpl implements KeycloakService {
 
     private final KeycloakManager keyCloakManager;
 
+    @Override
     public Integer createUser(UserRepresentation userRepresentation) {
         Response response = keyCloakManager.getKeyCloakInstanceWithRealm().users()
                 .create(userRepresentation);
@@ -22,16 +24,19 @@ public class KeycloakUserService {
         return response.getStatus();
     }
 
+    @Override
     public void updateUser(UserRepresentation userRepresentation) {
         keyCloakManager.getKeyCloakInstanceWithRealm().users()
                 .get(userRepresentation.getId())
                 .update(userRepresentation);
     }
 
+    @Override
     public List<UserRepresentation> findUserByUsername(String username) {
         return keyCloakManager.getKeyCloakInstanceWithRealm().users().search(username);
     }
 
+    @Override
     public UserRepresentation findUser(String authId) {
         try {
             UserResource userResource = keyCloakManager.getKeyCloakInstanceWithRealm().users().get(authId);

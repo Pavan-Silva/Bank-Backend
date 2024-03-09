@@ -1,8 +1,9 @@
 package com.example.userservice.controller;
 
-import com.example.userservice.dto.PasswordResetRequest;
-import com.example.userservice.dto.UserRequest;
-import com.example.userservice.dto.UserResponse;
+import com.example.userservice.dto.request.PasswordResetRequest;
+import com.example.userservice.dto.request.UserRequest;
+import com.example.userservice.dto.request.UserVerificationRequest;
+import com.example.userservice.dto.response.UserResponse;
 import com.example.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,14 +19,20 @@ public class UserController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('STAFF_MEMBER')")
-    public ResponseEntity<UserResponse> findUser(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> findUser(@PathVariable String id) {
         return ResponseEntity.ok(userService.findUser(id));
     }
 
     @GetMapping("/{id}/disable")
     @PreAuthorize("hasRole('STAFF_MEMBER')")
-    public void disableUser(@PathVariable Long id) {
+    public void disableUser(@PathVariable String id) {
         userService.disableUser(id);
+    }
+
+    @GetMapping("/{id}/verify")
+    @PreAuthorize("hasRole('USER')")
+    public void verifyUser(@PathVariable String id, @RequestBody UserVerificationRequest request) {
+        userService.verifyUser(id, request);
     }
 
     @PostMapping("/register")
