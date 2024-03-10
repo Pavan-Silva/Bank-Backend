@@ -28,7 +28,11 @@ public class SecurityConfig {
                                 exchange.pathMatchers("/eureka/**").permitAll()
                                         .pathMatchers("/actuator/**").permitAll()
                                         .pathMatchers("/users/register").permitAll()
+
+                                        .pathMatchers("/users/**").hasRole("USER")
                                         .pathMatchers("/email/**").hasRole("ADMIN")
+                                        .pathMatchers("/transactions/online").hasRole("USER")
+                                        .pathMatchers("/accounts/**", "/transactions/**").hasRole("STAFF_MEMBER")
                                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oath -> oath.jwt(

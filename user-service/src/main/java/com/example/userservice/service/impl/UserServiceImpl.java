@@ -117,6 +117,8 @@ public class UserServiceImpl implements UserService {
             userRepresentation.setEmailVerified(true);
             userRepresentation.setEnabled(true);
             keycloakService.updateUser(userRepresentation);
+
+            userVerificationRepository.delete(userVerification);
         }
 
         else throw new RuntimeException();

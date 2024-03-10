@@ -16,20 +16,6 @@ spring:
     url: jdbc:mysql://localhost:3306/microservices-auth
     username: root
     password: 1234
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:9090/realms/microservices
-      client:
-        provider:
-          keycloak:
-            token-uri: http://localhost:9090/realms/microservices/protocol/openid-connect/token
-        registration:
-          keycloak:
-            client-id: microservices-admin
-            client-secret: GaMOPLfQq69uwdZwHOlewqKKioCu2UZS
-            authorization-grant-type: client_credentials
 
 app:
   config:
