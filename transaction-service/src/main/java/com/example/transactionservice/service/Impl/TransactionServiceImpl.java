@@ -1,13 +1,13 @@
 package com.example.transactionservice.service.Impl;
 
 import com.example.transactionservice.client.AccountClient;
-import com.example.transactionservice.client.EmailClient;
 import com.example.transactionservice.dto.*;
 import com.example.transactionservice.exception.BadRequestException;
 import com.example.transactionservice.exception.NotFoundException;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.model.TransactionConfirmation;
 import com.example.transactionservice.model.TransactionStatus;
+import com.example.transactionservice.publisher.RabbitMQProducer;
 import com.example.transactionservice.repository.TransactionConfirmationRepository;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
@@ -25,7 +25,7 @@ import java.util.Random;
 public class TransactionServiceImpl implements TransactionService {
 
     private final AccountClient accountClient;
-    private final EmailClient emailClient;
+    private final RabbitMQProducer rabbitMQProducer;
     private final TransactionRepository transactionRepository;
     private final TransactionConfirmationRepository transactionConfirmationRepository;
 
@@ -206,7 +206,7 @@ public class TransactionServiceImpl implements TransactionService {
                         .build()
         );
 
-        emailClient.sendMail(
+        rabbitMQProducer.sendMessage(
                 Mail.builder()
                         .subject("Abc Bank OTP")
                         .message(account.getAccHolder().getName() + ", OTP for your current transaction is: " + confirmation.getOtp())
