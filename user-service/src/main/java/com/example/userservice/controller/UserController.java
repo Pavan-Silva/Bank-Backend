@@ -21,12 +21,12 @@ public class UserController {
         return ResponseEntity.ok(userService.findUser(id));
     }
 
-    @GetMapping("/{id}/disable")
+    @GetMapping("/disable/{id}")
     public void disableUser(@PathVariable String id) {
         userService.disableUser(id);
     }
 
-    @GetMapping("/{id}/verify")
+    @GetMapping("/verify/{id}")
     public void verifyUser(@PathVariable String id, @RequestBody UserVerificationRequest request) {
         userService.verifyUser(id, request);
     }
@@ -36,7 +36,7 @@ public class UserController {
         return ResponseEntity.ok(userService.createUser(request));
     }
 
-    @PutMapping("/{id}/reset")
+    @PutMapping("/reset/{id}")
     public void updateUser(@PathVariable Long id, @RequestBody PasswordResetRequest user) {
         userService.updateUser(id, user);
     }

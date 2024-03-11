@@ -27,12 +27,11 @@ public class SecurityConfig {
                         exchange ->
                                 exchange.pathMatchers("/eureka/**").permitAll()
                                         .pathMatchers("/actuator/**").permitAll()
-                                        .pathMatchers("/users/register").permitAll()
+                                        .pathMatchers("/users/register", "/users/verify/**").permitAll()
 
-                                        .pathMatchers("/users/**").hasRole("USER")
-                                        .pathMatchers("/email/**").hasRole("ADMIN")
-                                        .pathMatchers("/transactions/online").hasRole("USER")
-                                        .pathMatchers("/accounts/**", "/transactions/**").hasRole("STAFF_MEMBER")
+                                        .pathMatchers("/transactions/online", "/users/reset/**").hasRole("USER")
+                                        .pathMatchers("/users/**","/email/**").hasRole("ADMIN")
+                                        .pathMatchers("/accounts/**","/transactions/**").hasRole("STAFF_MEMBER")
                                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oath -> oath.jwt(
