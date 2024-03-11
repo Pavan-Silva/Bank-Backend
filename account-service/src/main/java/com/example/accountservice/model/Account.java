@@ -2,16 +2,18 @@ package com.example.accountservice.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
 @Setter
+@Builder
 @Entity
 @Table(name = "accounts")
+@NoArgsConstructor
+@AllArgsConstructor
 public class Account {
 
     @Id

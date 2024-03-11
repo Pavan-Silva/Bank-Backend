@@ -12,31 +12,24 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    @Value("${rabbitmq.queue.name}")
-    private String queue;
-
     @Value("${rabbitmq.exchange.name}")
     private String exchange;
 
-    @Value("${rabbitmq.routing.key}")
-    private String routingKey;
+    @Value("${rabbitmq.queues.email}")
+    private String emailQueue;
 
-    @Bean
-    public Queue queue() {
-        return new Queue(queue);
-    }
+    @Value("${rabbitmq.queues.accounts}")
+    private String accountsQueue;
+
+    @Value("${rabbitmq.routing.email-key}")
+    private String emailsRoutingKey;
+
+    @Value("${rabbitmq.routing.accounts-key}")
+    private String accountsRoutingKey;
 
     @Bean
     public TopicExchange exchange() {
         return new TopicExchange(exchange);
-    }
-
-    @Bean
-    public Binding binding() {
-        return BindingBuilder
-                .bind(queue())
-                .to(exchange())
-                .with(routingKey);
     }
 
     @Bean
@@ -49,5 +42,31 @@ public class RabbitMQConfig {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter());
         return rabbitTemplate;
+    }
+
+    @Bean
+    public Queue emailQueue() {
+        return new Queue(emailQueue);
+    }
+
+    @Bean
+    public Binding emailQueueBinding() {
+        return BindingBuilder
+                .bind(emailQueue())
+                .to(exchange())
+                .with(emailsRoutingKey);
+    }
+
+    @Bean
+    public Queue accountsQueue() {
+        return new Queue(accountsQueue);
+    }
+
+    @Bean
+    public Binding accountsQueueBinding() {
+        return BindingBuilder
+                .bind(accountsQueue())
+                .to(exchange())
+                .with(accountsRoutingKey);
     }
 }

@@ -18,6 +18,7 @@ import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -89,7 +90,7 @@ public class UserServiceImpl implements UserService {
 
         UserVerification userVerification = userVerificationRepository.save(
                 UserVerification.builder()
-                        .expirationTime(Instant.now().plusSeconds(60))
+                        .expirationTime(Instant.now().plus(6, ChronoUnit.HOURS))
                         .code(String.valueOf(random.nextInt(1000000)))
                         .userId(user.getId())
                         .build()

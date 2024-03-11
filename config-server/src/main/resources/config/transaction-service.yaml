@@ -23,9 +23,11 @@ spring:
     password: 1234
 
 rabbitmq:
-  queue:
-    name: email
   exchange:
-    name: email-exchange
+    name: microservices-exchange
+  queues:
+    email: emails
+    accounts: accounts
   routing:
-    key: email-key
+    email-key: email-key
+    accounts-key: accounts-key

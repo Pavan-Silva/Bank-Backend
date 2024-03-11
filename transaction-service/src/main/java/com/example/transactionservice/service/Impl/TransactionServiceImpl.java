@@ -80,11 +80,13 @@ public class TransactionServiceImpl implements TransactionService {
                     checkAccountStatus(receiver);
 
                     checkBalance(sender.getCurrentBalance(),transaction.getAmount());
-                    BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
-                    BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
 
-                    receiver.setCurrentBalance(updatedReceiverAccBalance);
+                    BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
                     sender.setCurrentBalance(updatedSenderAccBalance);
+
+                    BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
+                    receiver.setCurrentBalance(updatedReceiverAccBalance);
+
                     sender.setFailedTransactionAttempts(0);
 
                     TransactionStatus transactionStatus = TransactionStatus.builder()
@@ -95,10 +97,11 @@ public class TransactionServiceImpl implements TransactionService {
                     transaction.setTransactionStatus(transactionStatus);
                     transaction.setAccBalance(updatedSenderAccBalance);
                     Transaction completedTransaction = transactionRepository.save(transaction);
+
                     transactionConfirmationRepository.delete(confirmation);
 
-                    accountClient.updateAccount(sender);
-                    accountClient.updateAccount(receiver);
+                    rabbitMQProducer.sendAccountUpdateMessage(sender);
+                    rabbitMQProducer.sendAccountUpdateMessage(receiver);
 
                     return completedTransaction;
                 }
@@ -111,12 +114,12 @@ public class TransactionServiceImpl implements TransactionService {
                         .name("Disabled")
                         .build());
 
-                accountClient.updateAccount(sender);
+                rabbitMQProducer.sendAccountUpdateMessage(sender);
                 throw new BadRequestException("Account Disabled");
 
             } else {
                 sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
-                accountClient.updateAccount(sender);
+                rabbitMQProducer.sendAccountUpdateMessage(sender);
                 throw new BadRequestException("Failed Attempt");
             }
         }
@@ -164,7 +167,7 @@ public class TransactionServiceImpl implements TransactionService {
             pendingTransaction.setAccBalance(accBalance);
             Transaction transaction = transactionRepository.save(pendingTransaction);
 
-            accountClient.updateAccount(account);
+            rabbitMQProducer.sendAccountUpdateMessage(account);
             return transaction;
         }
 
@@ -206,7 +209,7 @@ public class TransactionServiceImpl implements TransactionService {
                         .build()
         );
 
-        rabbitMQProducer.sendMessage(
+        rabbitMQProducer.sendEmailMessage(
                 Mail.builder()
                         .subject("Abc Bank OTP")
                         .message(account.getAccHolder().getName() + ", OTP for your current transaction is: " + confirmation.getOtp())

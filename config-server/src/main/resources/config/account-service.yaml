@@ -12,7 +12,16 @@ management:
       probability: 1.0
 
 spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
   datasource:
     url: jdbc:mysql://localhost:3306/microservices_accounts
     username: root
     password: 1234
+
+rabbitmq:
+  queue:
+    name: accounts

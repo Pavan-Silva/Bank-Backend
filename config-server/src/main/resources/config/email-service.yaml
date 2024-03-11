@@ -13,7 +13,7 @@ management:
 
 rabbitmq:
   queue:
-    name: email
+    name: emails
 
 spring:
   rabbitmq:
