@@ -9,5 +9,5 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface AccountClient {
 
     @GetMapping("/{id}")
-    AccountDetails findAccount(@PathVariable int id);
+    AccountDetails findAccount(@PathVariable Long id);
 }

@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 
 @Getter
 @Builder
-public class TransactionRequest {
+public class TransferRequest {
 
     private BigDecimal amount;
-    private Long accountId;
+    private Long receiverId;
+    private Long senderId;
+    private String remarks;
 }

@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Setter
 public class AccountDetails {
 
-    private Integer id;
+    private Long id;
     private BigDecimal currentBalance;
     private AccountStatus accStatus;
     private AccHolder accHolder;

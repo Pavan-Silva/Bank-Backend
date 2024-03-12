@@ -27,14 +27,6 @@ public class PendingOnlineTransaction {
     private Transaction transaction;
 
     @NotNull
-    @Column(name = "sender_id", nullable = false)
-    private Integer senderId;
-
-    @NotNull
-    @Column(name = "receiver_id", nullable = false)
-    private Integer receiverId;
-
-    @NotNull
     @Column(name = "expiration_time", nullable = false)
     private Instant expirationTime;
 

@@ -31,11 +31,13 @@ public class Transaction {
     private BigDecimal amount;
 
     @NotNull
-    @Column(name = "account_id", nullable = false)
-    private Integer accountId;
+    @Column(name = "main_account_id", nullable = false)
+    private Long mainAccountId;
 
-    @NotNull
-    @Column(name = "acc_balance", nullable = false)
+    @Column(name = "receiver_account_id")
+    private Long receiverAccountId;
+
+    @Column(name = "acc_balance")
     private BigDecimal accBalance;
 
     @Size(max = 100)

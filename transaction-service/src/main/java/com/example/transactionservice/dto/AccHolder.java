@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class AccHolder {
 
-    private Integer id;
+    private Long id;
     private String name;
     private String email;
 }

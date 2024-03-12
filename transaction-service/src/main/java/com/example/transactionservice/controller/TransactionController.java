@@ -2,6 +2,7 @@ package com.example.transactionservice.controller;
 
 import com.example.transactionservice.dto.OtpRequest;
 import com.example.transactionservice.dto.TransactionRequest;
+import com.example.transactionservice.dto.TransferRequest;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.service.TransactionService;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +31,8 @@ public class TransactionController {
     }
 
     @PostMapping("/online")
-    public Transaction saveOnlineTransaction(@RequestBody TransactionRequest transactionRequest){
-        return transactionService.saveOnlineTransaction(transactionRequest);
+    public Transaction saveOnlineTransaction(@RequestBody TransferRequest transferRequest){
+        return transactionService.saveOnlineTransaction(transferRequest);
     }
 
     @PostMapping("/verify/{refNo}")

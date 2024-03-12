@@ -9,6 +9,7 @@ import com.example.transactionservice.messaging.EmailProducer;
 import com.example.transactionservice.model.PendingOnlineTransaction;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.model.TransactionStatus;
+import com.example.transactionservice.model.TransactionType;
 import com.example.transactionservice.repository.PendingTransactionRepository;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
@@ -39,57 +40,76 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction saveDeposit(TransactionRequest transactionRequest) {
-        String transactionType = transactionRequest.getTransactionType().getName();
-
-        if (!transactionType.equals("Deposit"))
-            throw new BadRequestException("Invalid transaction type");
-
-        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
-
-        checkAccountStatus(account);
+        AccountDetails account = accountClient.findAccount(transactionRequest.getAccountId());
 
         BigDecimal accBalance = account.getCurrentBalance().add(transactionRequest.getAmount());
 
-        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
-        pendingTransaction.setAccBalance(accBalance);
-        Transaction transaction = transactionRepository.save(pendingTransaction);
+        TransactionType transactionType = TransactionType.builder()
+                .id(3)
+                .name("Deposit")
+                .build();
+
+        Transaction transaction = dtoToTransaction(transactionRequest);
+        transaction.setTransactionType(transactionType);
+        transaction.setAccBalance(accBalance);
+
+        Transaction transactionResult = transactionRepository.save(transaction);
 
         account.setCurrentBalance(accBalance);
+
         accountProducer.sendAccountUpdateMessage(account);
-        return transaction;
+        emailProducer.sendEmailMessage(
+                Mail.builder()
+                        .subject("Abc Bank Transaction")
+                        .receiver(account.getAccHolder().getEmail())
+                        .message(
+                                "You have successfully received: " + transactionResult.getAmount() + " LKR, " +
+                                "Your current account balance is: " + transactionResult.getAccBalance() + " LKR."
+                        )
+                        .build()
+        );
+        return transactionResult;
     }
 
     @Override
     public Transaction saveWithdrawal(TransactionRequest transactionRequest) {
-        String transactionType = transactionRequest.getTransactionType().getName();
-
-        if (!transactionType.equals("Withdrawal"))
-            throw new BadRequestException("Invalid transaction type");
-
-        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
+        AccountDetails account = accountClient.findAccount(transactionRequest.getAccountId());
 
         checkAccountStatus(account);
         checkBalance(account.getCurrentBalance(), transactionRequest.getAmount());
 
         BigDecimal accBalance = account.getCurrentBalance().subtract(transactionRequest.getAmount());
 
-        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
-        pendingTransaction.setAccBalance(accBalance);
-        Transaction transaction = transactionRepository.save(pendingTransaction);
+        TransactionType transactionType = TransactionType.builder()
+                .id(4)
+                .name("Withdrawal")
+                .build();
+
+        Transaction transaction = dtoToTransaction(transactionRequest);
+        transaction.setTransactionType(transactionType);
+        transaction.setAccBalance(accBalance);
+
+        Transaction transactionResult = transactionRepository.save(transaction);
 
         account.setCurrentBalance(accBalance);
+
         accountProducer.sendAccountUpdateMessage(account);
-        return transaction;
+        emailProducer.sendEmailMessage(
+                Mail.builder()
+                        .subject("Abc Bank Transaction")
+                        .receiver(account.getAccHolder().getEmail())
+                        .message(
+                                "You have successfully withdrawn: " + transactionResult.getAmount() + " LKR, " +
+                                "Your current account balance is: " + transactionResult.getAccBalance() + " LKR."
+                        )
+                        .build()
+        );
+        return transactionResult;
     }
 
     @Override
-    public Transaction saveOnlineTransaction(TransactionRequest transactionRequest) {
-        String transactionType = transactionRequest.getTransactionType().getName();
-
-        if (transactionType.equals("Deposit") || transactionType.equals("Withdrawal"))
-            throw new BadRequestException("Invalid transaction type");
-
-        else return handleTransfer(transactionRequest);
+    public Transaction saveOnlineTransaction(TransferRequest transferRequest) {
+        return handleTransfer(transferRequest);
     }
 
     @Override
@@ -112,8 +132,8 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Transaction already completed");
         }
 
-        AccountDetails sender = accountClient.findAccount(pendingTransaction.getSenderId());
-        AccountDetails receiver = accountClient.findAccount(pendingTransaction.getReceiverId());
+        AccountDetails sender = accountClient.findAccount(transaction.getMainAccountId());
+        AccountDetails receiver = accountClient.findAccount(transaction.getReceiverAccountId());
 
         if (sender.getAccStatus().getName().equals("Disabled")) {
             handleFailedTransfer(transaction);
@@ -169,11 +189,35 @@ public class TransactionServiceImpl implements TransactionService {
         accountProducer.sendAccountUpdateMessage(sender);
         accountProducer.sendAccountUpdateMessage(receiver);
 
+        emailProducer.sendEmailMessage(
+                Mail.builder()
+                        .subject("ABC Bank Transaction")
+                        .receiver(sender.getAccHolder().getEmail())
+                        .message(
+                                "You have successfully transferred: " + transaction.getAmount() + " LKR, " +
+                                        "Your current account balance is: " + sender.getCurrentBalance() + " LKR."
+                        )
+                        .build()
+        );
+
+        emailProducer.sendEmailMessage(
+                Mail.builder()
+                        .subject("ABC Bank Transaction")
+                        .receiver(receiver.getAccHolder().getEmail())
+                        .message(
+                                "You have successfully received: " + transaction.getAmount() + " LKR, " +
+                                        "Your current account balance is: " + receiver.getCurrentBalance() + " LKR."
+                        )
+                        .build()
+        );
+
         return completedTransaction;
     }
 
     @Override
     public void resendOtp(Long refNo) {
+        Transaction transaction = findByRefNo(refNo);
+
         PendingOnlineTransaction pendingOnlineTransaction = pendingTransactionRepository.findByTransaction_RefNo(refNo)
                 .orElseThrow(() -> new NotFoundException("Invalid transaction"));
 
@@ -181,24 +225,19 @@ public class TransactionServiceImpl implements TransactionService {
         pendingOnlineTransaction.setExpirationTime(Instant.now().plusSeconds(60));
         pendingTransactionRepository.save(pendingOnlineTransaction);
 
-        AccountDetails account = accountClient.findAccount(pendingOnlineTransaction.getReceiverId());
+        AccountDetails account = accountClient.findAccount(transaction.getReceiverAccountId());
         sendVerificationCode(account.getAccHolder().getEmail(), pendingOnlineTransaction.getOtp());
     }
 
-    private Transaction handleTransfer(TransactionRequest transactionRequest) {
-        AccountDetails sender = accountClient.findAccount(transactionRequest.getSenderId());
-        AccountDetails receiver = accountClient.findAccount(transactionRequest.getReceiverId());
+    private Transaction handleTransfer(TransferRequest transferRequest) {
+        AccountDetails sender = accountClient.findAccount(transferRequest.getSenderId());
 
-        Transaction transaction = dtoToTransaction(transactionRequest);
-        transaction.setAccBalance(sender.getCurrentBalance());
-
+        Transaction transaction = dtoToTransfer(transferRequest);
         transactionRepository.save(transaction);
         pendingTransactionRepository.deleteByTransaction(transaction);
 
         PendingOnlineTransaction pendingOnlineTransaction = pendingTransactionRepository.save(
                 PendingOnlineTransaction.builder()
-                        .receiverId(receiver.getId())
-                        .senderId(sender.getId())
                         .transaction(transaction)
                         .expirationTime(Instant.now().plusSeconds(60))
                         .otp(generateRandomOtp())
@@ -246,16 +285,36 @@ public class TransactionServiceImpl implements TransactionService {
 
     private Transaction dtoToTransaction(TransactionRequest transactionRequest) {
         TransactionStatus transactionStatus = TransactionStatus.builder()
-                .id(1)
-                .name("Pending")
+                .id(3)
+                .name("Completed")
                 .build();
 
         return Transaction.builder()
                 .date(Instant.now())
+                .transactionStatus(transactionStatus)
                 .amount(transactionRequest.getAmount())
-                .accountId(transactionRequest.getSenderId())
-                .remarks(transactionRequest.getRemarks())
-                .transactionType(transactionRequest.getTransactionType())
+                .mainAccountId(transactionRequest.getAccountId())
+                .build();
+    }
+
+    private Transaction dtoToTransfer(TransferRequest transferRequest) {
+        TransactionStatus transactionStatus = TransactionStatus.builder()
+                .id(1)
+                .name("Pending")
+                .build();
+
+        TransactionType transactionType = TransactionType.builder()
+                .id(2)
+                .name("Transfer")
+                .build();
+
+        return Transaction.builder()
+                .date(Instant.now())
+                .amount(transferRequest.getAmount())
+                .mainAccountId(transferRequest.getSenderId())
+                .receiverAccountId(transferRequest.getReceiverId())
+                .remarks(transferRequest.getRemarks())
+                .transactionType(transactionType)
                 .transactionStatus(transactionStatus)
                 .build();
     }
