@@ -19,9 +19,14 @@ public class TransactionController {
         return transactionService.findByRefNo(refNo);
     }
 
-    @PostMapping
-    public Transaction save(@RequestBody TransactionRequest transactionRequest) {
+    @PostMapping("/deposit")
+    public Transaction saveDeposit(@RequestBody TransactionRequest transactionRequest) {
         return transactionService.saveDeposit(transactionRequest);
+    }
+
+    @PostMapping("/withdraw")
+    public Transaction saveWithdraw(@RequestBody TransactionRequest transactionRequest) {
+        return transactionService.saveWithdrawal(transactionRequest);
     }
 
     @PostMapping("/online")
