@@ -4,11 +4,11 @@ import com.example.accountservice.model.Account;
 
 public interface AccountService {
 
-    Account findById(int id);
+    Account findById(Long id);
 
     Account save(Account account);
 
     Account update(Account account);
 
-    void deleteById(int id);
+    void deleteById(Long id);
 }

@@ -15,7 +15,7 @@ public class AccHolderServiceImpl implements AccHolderService {
     private final AccHolderRepository accHolderRepository;
 
     @Override
-    public AccHolder findById(int id) {
+    public AccHolder findById(Long id) {
         return accHolderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Couldn't find account holder"));
     }
@@ -57,7 +57,7 @@ public class AccHolderServiceImpl implements AccHolderService {
     }
 
     @Override
-    public void deleteById(int id) {
+    public void deleteById(Long id) {
         findById(id);
         accHolderRepository.deleteById(id);
     }

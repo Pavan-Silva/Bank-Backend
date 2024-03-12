@@ -16,7 +16,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccHolderService accHolderService;
 
     @Override
-    public Account findById(int id) {
+    public Account findById(Long id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("No any accounts associated with provided info"));
     }
@@ -76,7 +76,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public void deleteById(int id) {
+    public void deleteById(Long id) {
         findById(id);
         accountRepository.deleteById(id);
     }

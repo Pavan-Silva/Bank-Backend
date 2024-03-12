@@ -13,7 +13,7 @@ public class AccountController {
     private final AccountService accountService;
 
     @GetMapping("/{id}")
-    public Account find(@PathVariable int id) {
+    public Account find(@PathVariable Long id) {
         return accountService.findById(id);
     }
 
@@ -28,7 +28,7 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable int id) {
+    public void delete(@PathVariable Long id) {
         accountService.deleteById(id);
     }
 }

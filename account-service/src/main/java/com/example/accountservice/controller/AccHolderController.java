@@ -13,7 +13,7 @@ public class AccHolderController {
     private final AccHolderService accHolderService;
 
     @GetMapping("/{id}")
-    public AccHolder find(@PathVariable int id) {
+    public AccHolder find(@PathVariable Long id) {
         return accHolderService.findById(id);
     }
 
@@ -28,7 +28,7 @@ public class AccHolderController {
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable int id) {
+    public void delete(@PathVariable Long id) {
         accHolderService.deleteById(id);
     }
 }

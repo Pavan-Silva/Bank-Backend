@@ -16,7 +16,7 @@ public class AccHolder {
 
     @Id
     @Column(name = "id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @Size(max = 45)
     @Column(name = "name", length = 45)
