@@ -20,7 +20,7 @@ public class Transaction {
     @Id
     @Column(name = "ref_no", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer refNo;
+    private Long refNo;
 
     @NotNull
     @Column(name = "date", nullable = false)
@@ -39,8 +39,8 @@ public class Transaction {
     private BigDecimal accBalance;
 
     @Size(max = 100)
-    @Column(name = "description", length = 100)
-    private String description;
+    @Column(name = "remarks", length = 100)
+    private String remarks;
 
     @NotNull
     @ManyToOne(optional = false)

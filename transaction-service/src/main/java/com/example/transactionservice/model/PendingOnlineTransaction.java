@@ -13,18 +13,22 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "transaction_confirmations")
-public class TransactionConfirmation {
+@Table(name = "pending_online_transactions")
+public class PendingOnlineTransaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
-    private Integer id;
+    private Long id;
 
     @NotNull
     @ManyToOne(optional = false)
     @JoinColumn(name = "transactions_ref_no", nullable = false)
     private Transaction transaction;
+
+    @NotNull
+    @Column(name = "sender_id", nullable = false)
+    private Integer senderId;
 
     @NotNull
     @Column(name = "receiver_id", nullable = false)

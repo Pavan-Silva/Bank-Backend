@@ -6,10 +6,10 @@ import com.example.transactionservice.exception.BadRequestException;
 import com.example.transactionservice.exception.NotFoundException;
 import com.example.transactionservice.messaging.AccountProducer;
 import com.example.transactionservice.messaging.EmailProducer;
+import com.example.transactionservice.model.PendingOnlineTransaction;
 import com.example.transactionservice.model.Transaction;
-import com.example.transactionservice.model.TransactionConfirmation;
 import com.example.transactionservice.model.TransactionStatus;
-import com.example.transactionservice.repository.TransactionConfirmationRepository;
+import com.example.transactionservice.repository.PendingTransactionRepository;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
 import jakarta.transaction.Transactional;
@@ -29,23 +29,57 @@ public class TransactionServiceImpl implements TransactionService {
     private final EmailProducer emailProducer;
     private final AccountProducer accountProducer;
     private final TransactionRepository transactionRepository;
-    private final TransactionConfirmationRepository transactionConfirmationRepository;
+    private final PendingTransactionRepository pendingTransactionRepository;
 
     @Override
-    public Transaction findByRefNo(Integer refNo) {
+    public Transaction findByRefNo(Long refNo) {
         return transactionRepository.findByRefNo(refNo)
                 .orElseThrow(() -> new NotFoundException("Invalid transaction"));
     }
 
     @Override
-    public Transaction saveDomesticTransaction(TransactionRequest transactionRequest) {
+    public Transaction saveDeposit(TransactionRequest transactionRequest) {
         String transactionType = transactionRequest.getTransactionType().getName();
 
-        if (transactionType.equals("Deposit") || transactionType.equals("Withdrawal"))
-            return handleInBranchTransaction(transactionRequest);
+        if (!transactionType.equals("Deposit"))
+            throw new BadRequestException("Invalid transaction type");
 
-        else
-            return handleTransfer(transactionRequest);
+        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
+
+        checkAccountStatus(account);
+
+        BigDecimal accBalance = account.getCurrentBalance().add(transactionRequest.getAmount());
+
+        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
+        pendingTransaction.setAccBalance(accBalance);
+        Transaction transaction = transactionRepository.save(pendingTransaction);
+
+        account.setCurrentBalance(accBalance);
+        accountProducer.sendAccountUpdateMessage(account);
+        return transaction;
+    }
+
+    @Override
+    public Transaction saveWithdrawal(TransactionRequest transactionRequest) {
+        String transactionType = transactionRequest.getTransactionType().getName();
+
+        if (!transactionType.equals("Withdrawal"))
+            throw new BadRequestException("Invalid transaction type");
+
+        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
+
+        checkAccountStatus(account);
+        checkBalance(account.getCurrentBalance(), transactionRequest.getAmount());
+
+        BigDecimal accBalance = account.getCurrentBalance().subtract(transactionRequest.getAmount());
+
+        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
+        pendingTransaction.setAccBalance(accBalance);
+        Transaction transaction = transactionRepository.save(pendingTransaction);
+
+        account.setCurrentBalance(accBalance);
+        accountProducer.sendAccountUpdateMessage(account);
+        return transaction;
     }
 
     @Override
@@ -59,167 +93,155 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    public Transaction verify(Integer refNo, OtpRequest otpRequest) {
+    public Transaction verify(Long refNo, OtpRequest otpRequest) {
         Transaction transaction = findByRefNo(refNo);
 
+        PendingOnlineTransaction pendingTransaction = pendingTransactionRepository
+                .findByTransaction_RefNo(refNo)
+                .orElseThrow();
+
         boolean isPending = transaction.getTransactionStatus().getName().equals("Pending");
-        boolean isNotExpired = transaction.getDate().plusSeconds(60).isAfter(Instant.now());
+        boolean isExpired = pendingTransaction.getExpirationTime().isBefore(Instant.now());
 
-        if (isPending && isNotExpired) {
-            TransactionConfirmation confirmation = transactionConfirmationRepository
-                    .findByTransaction_RefNo(refNo)
-                    .orElseThrow();
+        if (isExpired) {
+            handleFailedTransfer(transaction);
+            throw new BadRequestException("Transaction Expired");
+        }
 
-            AccountDetails sender = accountClient.findAccount(transaction.getAccountId());
-            AccountDetails receiver = accountClient.findAccount(confirmation.getReceiverId());
+        if (!isPending) {
+            throw new BadRequestException("Transaction already completed");
+        }
 
-            boolean isOtpValid = otpRequest.getCode().equals(confirmation.getOtp());
-            boolean isValidTimePeriod = confirmation.getExpirationTime().isAfter(Instant.now());
+        AccountDetails sender = accountClient.findAccount(pendingTransaction.getSenderId());
+        AccountDetails receiver = accountClient.findAccount(pendingTransaction.getReceiverId());
 
-            if (isOtpValid && sender.getFailedTransactionAttempts() <3 && isValidTimePeriod) {
-                if (receiver == null) {
-                    throw new BadRequestException("Invalid receiver");
-                }
+        if (sender.getAccStatus().getName().equals("Disabled")) {
+            handleFailedTransfer(transaction);
+            throw new BadRequestException("Account Disabled");
+        }
 
-                checkAccountStatus(sender);
-                checkAccountStatus(receiver);
+        boolean isOtpValid = otpRequest.getCode().equals(pendingTransaction.getOtp());
+        boolean isValidTimePeriod = pendingTransaction.getExpirationTime().isAfter(Instant.now());
 
-                checkBalance(sender.getCurrentBalance(),transaction.getAmount());
+        if (!isOtpValid || !isValidTimePeriod) {
+            sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
 
-                BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
-                sender.setCurrentBalance(updatedSenderAccBalance);
+            String error = "Failed attempt";
 
-                BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
-                receiver.setCurrentBalance(updatedReceiverAccBalance);
-
-                sender.setFailedTransactionAttempts(0);
-
-                TransactionStatus transactionStatus = TransactionStatus.builder()
-                        .id(3)
-                        .name("Completed")
-                        .build();
-
-                transaction.setTransactionStatus(transactionStatus);
-                transaction.setAccBalance(updatedSenderAccBalance);
-                Transaction completedTransaction = transactionRepository.save(transaction);
-
-                transactionConfirmationRepository.delete(confirmation);
-
-                accountProducer.sendAccountUpdateMessage(sender);
-                accountProducer.sendAccountUpdateMessage(receiver);
-
-                return completedTransaction;
-
-            } else if (sender.getFailedTransactionAttempts() >= 3) {
+            if (sender.getFailedTransactionAttempts() >= 3) {
                 sender.setAccStatus(AccountStatus.builder()
                         .id(2)
                         .name("Disabled")
                         .build());
 
-                accountProducer.sendAccountUpdateMessage(sender);
-                throw new BadRequestException("Account Disabled");
-
-            } else {
-                sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
-                accountProducer.sendAccountUpdateMessage(sender);
-                throw new BadRequestException("Failed Attempt");
+                handleFailedTransfer(transaction);
+                error = "Account Disabled";
             }
+
+            accountProducer.sendAccountUpdateMessage(sender);
+            throw new BadRequestException(error);
         }
 
-        else {
-            TransactionStatus transactionStatusFailed = TransactionStatus.builder()
-                    .id(4)
-                    .name("Failed")
-                    .build();
+        checkAccountStatus(sender);
+        checkAccountStatus(receiver);
 
-            transaction.setTransactionStatus(transactionStatusFailed);
-            transactionRepository.save(transaction);
-            throw new BadRequestException("Transaction Expired");
-        }
+        checkBalance(sender.getCurrentBalance(),transaction.getAmount());
+
+        BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
+        sender.setCurrentBalance(updatedSenderAccBalance);
+
+        BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
+        receiver.setCurrentBalance(updatedReceiverAccBalance);
+
+        sender.setFailedTransactionAttempts(0);
+
+        TransactionStatus transactionStatus = TransactionStatus.builder()
+                .id(3)
+                .name("Completed")
+                .build();
+
+        transaction.setTransactionStatus(transactionStatus);
+        transaction.setAccBalance(updatedSenderAccBalance);
+        Transaction completedTransaction = transactionRepository.save(transaction);
+
+        pendingTransactionRepository.delete(pendingTransaction);
+
+        accountProducer.sendAccountUpdateMessage(sender);
+        accountProducer.sendAccountUpdateMessage(receiver);
+
+        return completedTransaction;
     }
 
     @Override
-    public void resendOtp(Integer refNo) {
-        Transaction transaction = findByRefNo(refNo);
-        AccountDetails account = accountClient.findAccount(transaction.getAccountId());
-        sendVerificationCode(account, transaction);
+    public void resendOtp(Long refNo) {
+        PendingOnlineTransaction pendingOnlineTransaction = pendingTransactionRepository.findByTransaction_RefNo(refNo)
+                .orElseThrow(() -> new NotFoundException("Invalid transaction"));
+
+        pendingOnlineTransaction.setOtp(generateRandomOtp());
+        pendingOnlineTransaction.setExpirationTime(Instant.now().plusSeconds(60));
+        pendingTransactionRepository.save(pendingOnlineTransaction);
+
+        AccountDetails account = accountClient.findAccount(pendingOnlineTransaction.getReceiverId());
+        sendVerificationCode(account.getAccHolder().getEmail(), pendingOnlineTransaction.getOtp());
     }
 
     private Transaction handleTransfer(TransactionRequest transactionRequest) {
         AccountDetails sender = accountClient.findAccount(transactionRequest.getSenderId());
         AccountDetails receiver = accountClient.findAccount(transactionRequest.getReceiverId());
 
-        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
-        pendingTransaction.setAccBalance(sender.getCurrentBalance());
+        Transaction transaction = dtoToTransaction(transactionRequest);
+        transaction.setAccBalance(sender.getCurrentBalance());
 
-        Transaction transaction = transactionRepository.save(pendingTransaction);
+        transactionRepository.save(transaction);
+        pendingTransactionRepository.deleteByTransaction(transaction);
 
-        sendVerificationCode(receiver, transaction);
+        PendingOnlineTransaction pendingOnlineTransaction = pendingTransactionRepository.save(
+                PendingOnlineTransaction.builder()
+                        .receiverId(receiver.getId())
+                        .senderId(sender.getId())
+                        .transaction(transaction)
+                        .expirationTime(Instant.now().plusSeconds(60))
+                        .otp(generateRandomOtp())
+                        .build()
+        );
+
+        sendVerificationCode(sender.getAccHolder().getEmail(), pendingOnlineTransaction.getOtp());
         return transaction;
     }
 
-    private Transaction handleInBranchTransaction(TransactionRequest transactionRequest) {
-        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
+    private void handleFailedTransfer(Transaction transaction) {
+        TransactionStatus transactionStatusFailed = TransactionStatus.builder()
+                .id(4)
+                .name("Failed")
+                .build();
 
-        if (account != null) {
-            checkAccountStatus(account);
-            BigDecimal accBalance;
-
-            if (transactionRequest.getTransactionType().getName().equals("Withdrawal")) {
-                checkBalance(account.getCurrentBalance(), transactionRequest.getAmount());
-                accBalance = account.getCurrentBalance().subtract(transactionRequest.getAmount());
-                account.setCurrentBalance(accBalance);
-            }
-
-            else if (transactionRequest.getTransactionType().getName().equals("Deposit")) {
-                accBalance = account.getCurrentBalance().add(transactionRequest.getAmount());
-                account.setCurrentBalance(accBalance);
-            }
-
-            else throw new RuntimeException();
-
-            Transaction pendingTransaction = dtoToTransaction(transactionRequest);
-            pendingTransaction.setAccBalance(accBalance);
-            Transaction transaction = transactionRepository.save(pendingTransaction);
-
-            accountProducer.sendAccountUpdateMessage(account);
-            return transaction;
-        }
-
-        else throw new RuntimeException("Invalid sender");
+        transaction.setTransactionStatus(transactionStatusFailed);
+        transactionRepository.save(transaction);
     }
 
     private void checkBalance(BigDecimal balance, BigDecimal amount) {
         if (balance.compareTo(amount) < 0)
-            throw new RuntimeException("Insufficient Balance");
+            throw new BadRequestException("Insufficient Balance");
     }
 
     private void checkAccountStatus(AccountDetails accountDetails) {
         if (!accountDetails.getAccStatus().getName().equals("Active"))
-            throw new RuntimeException("Account Disabled");
+            throw new BadRequestException("Account Disabled");
     }
 
-    private void sendVerificationCode(AccountDetails account, Transaction transaction) {
-        transactionConfirmationRepository.deleteByTransaction(transaction);
-
-        Random random = new Random();
-
-        TransactionConfirmation confirmation = transactionConfirmationRepository.save(
-                TransactionConfirmation.builder()
-                        .receiverId(account.getId())
-                        .transaction(transaction)
-                        .expirationTime(Instant.now().plusSeconds(60))
-                        .otp(String.valueOf(random.nextInt(1000000)))
-                        .build()
-        );
-
+    private void sendVerificationCode(String email, String otp) {
         emailProducer.sendEmailMessage(
                 Mail.builder()
                         .subject("Abc Bank OTP")
-                        .message(account.getAccHolder().getName() + ", OTP for your current transaction is: " + confirmation.getOtp())
-                        .receiver(account.getAccHolder().getEmail())
+                        .message("OTP for your current transaction is: " + otp)
+                        .receiver(email)
                         .build()
         );
+    }
+
+    private String generateRandomOtp() {
+        Random random = new Random();
+        return String.valueOf(random.nextInt(1000000));
     }
 
     private Transaction dtoToTransaction(TransactionRequest transactionRequest) {
@@ -232,7 +254,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .date(Instant.now())
                 .amount(transactionRequest.getAmount())
                 .accountId(transactionRequest.getSenderId())
-                .description(transactionRequest.getDescription())
+                .remarks(transactionRequest.getRemarks())
                 .transactionType(transactionRequest.getTransactionType())
                 .transactionStatus(transactionStatus)
                 .build();

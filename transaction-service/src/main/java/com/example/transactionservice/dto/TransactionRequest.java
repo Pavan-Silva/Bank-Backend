@@ -13,6 +13,6 @@ public class TransactionRequest {
     private BigDecimal amount;
     private Integer receiverId;
     private Integer senderId;
-    private String description;
+    private String remarks;
     private TransactionType transactionType;
 }

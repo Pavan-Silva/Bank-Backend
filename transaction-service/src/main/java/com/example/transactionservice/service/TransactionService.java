@@ -6,13 +6,15 @@ import com.example.transactionservice.model.Transaction;
 
 public interface TransactionService {
 
-    Transaction findByRefNo(Integer refNo);
+    Transaction findByRefNo(Long refNo);
 
-    Transaction saveDomesticTransaction(TransactionRequest transactionRequest);
+    Transaction saveDeposit(TransactionRequest transactionRequest);
+
+    Transaction saveWithdrawal(TransactionRequest transactionRequest);
 
     Transaction saveOnlineTransaction(TransactionRequest transactionRequest);
 
-    Transaction verify(Integer refNo, OtpRequest otpRequest);
+    Transaction verify(Long refNo, OtpRequest otpRequest);
 
-    void resendOtp(Integer refNo);
+    void resendOtp(Long refNo);
 }

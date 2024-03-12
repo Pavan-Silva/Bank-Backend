@@ -1,14 +1,14 @@
 package com.example.transactionservice.repository;
 
+import com.example.transactionservice.model.PendingOnlineTransaction;
 import com.example.transactionservice.model.Transaction;
-import com.example.transactionservice.model.TransactionConfirmation;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface TransactionConfirmationRepository extends JpaRepository<TransactionConfirmation, Integer> {
+public interface PendingTransactionRepository extends JpaRepository<PendingOnlineTransaction, Long> {
 
-    Optional<TransactionConfirmation> findByTransaction_RefNo(Integer refNo);
+    Optional<PendingOnlineTransaction> findByTransaction_RefNo(Long refNo);
 
     void deleteByTransaction(Transaction transaction);
 }
