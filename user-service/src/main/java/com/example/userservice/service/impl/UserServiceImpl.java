@@ -8,6 +8,8 @@ import com.example.userservice.dto.request.UserRequest;
 import com.example.userservice.dto.request.UserVerificationRequest;
 import com.example.userservice.dto.response.AccHolder;
 import com.example.userservice.dto.response.UserResponse;
+import com.example.userservice.exception.BadRequestException;
+import com.example.userservice.exception.NotFoundException;
 import com.example.userservice.model.UserVerification;
 import com.example.userservice.repository.UserVerificationRepository;
 import com.example.userservice.service.KeycloakService;
@@ -33,6 +35,16 @@ public class UserServiceImpl implements UserService {
     private final UserVerificationRepository userVerificationRepository;
 
     @Override
+    public List<UserResponse> findAll(int page, int size) {
+        return keycloakService.findAllUsers(page, size).stream().map(
+                user -> UserResponse.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .build()
+        ).toList();
+    }
+
+    @Override
     public UserResponse findUser(String userId) {
         UserRepresentation user = keycloakService.findUser(userId);
 
@@ -47,14 +59,14 @@ public class UserServiceImpl implements UserService {
         List<UserRepresentation> userRepresentations = keycloakService.findUserByUsername(userRequest.getUsername());
 
         if (!userRepresentations.isEmpty()) {
-            throw new RuntimeException("This username already registered as a user. Please check and retry.");
+            throw new BadRequestException("This username already registered as a user. Please check and retry.");
         }
 
         AccHolder accHolder = accHolderClient.findAccount(userRequest.getAccHolderId());
 
         if (accHolder.getEmail() != null) {
             if (!accHolder.getNic().equals(userRequest.getNic())) {
-                throw new RuntimeException("User verification failed");
+                throw new BadRequestException("User verification failed");
             }
 
             UserRepresentation userRepresentation = generateUserRepresentation(
@@ -80,7 +92,7 @@ public class UserServiceImpl implements UserService {
             }
         }
 
-        throw new RuntimeException("We couldn't find user under given identification. Please check and retry");
+        throw new NotFoundException("We couldn't find user under given identification. Please check and retry");
     }
 
     private void sendVerification(UserRepresentation user) {
@@ -129,6 +141,9 @@ public class UserServiceImpl implements UserService {
     public void updateUser(Long userId, PasswordResetRequest req) {
         UserRepresentation userRepresentation = keycloakService.findUser(userId.toString());
 
+        if (userRepresentation == null)
+            throw new NotFoundException("User not found");
+
         if (req.getNewPassword() != null)
             userRepresentation.setCredentials(Collections.singletonList(
                     generateCredentialRepresentation(req.getNewPassword())
@@ -140,6 +155,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public void disableUser(String userId) {
         UserRepresentation userRepresentation = keycloakService.findUser(userId);
+
+        if (userRepresentation == null)
+            throw new NotFoundException("User not found");
+
         userRepresentation.setEnabled(false);
         keycloakService.updateUser(userRepresentation);
     }

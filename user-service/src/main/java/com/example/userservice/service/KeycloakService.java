@@ -13,4 +13,6 @@ public interface KeycloakService {
     List<UserRepresentation> findUserByUsername(String username);
 
     UserRepresentation findUser(String authId);
+
+    List<UserRepresentation> findAllUsers(int page, int size);
 }

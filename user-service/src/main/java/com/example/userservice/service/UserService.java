@@ -5,7 +5,11 @@ import com.example.userservice.dto.request.UserRequest;
 import com.example.userservice.dto.request.UserVerificationRequest;
 import com.example.userservice.dto.response.UserResponse;
 
+import java.util.List;
+
 public interface UserService {
+
+    List<UserResponse> findAll(int page, int size);
 
     UserResponse findUser(String userId);
 

@@ -1,4 +1,4 @@
-package com.example.accountservice.dto;
+package com.example.userservice.dto.response;
 
 import lombok.*;
 
@@ -9,7 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 public class ErrorResponse {
 
+    private Integer code;
     private String error;
     private String message;
-    private Integer code;
 }

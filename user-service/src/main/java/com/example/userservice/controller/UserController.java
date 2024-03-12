@@ -9,12 +9,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/users")
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping
+    public List<UserResponse> findAll(@RequestParam int page, @RequestParam int size) {
+        return userService.findAll(page, size);
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> findUser(@PathVariable String id) {

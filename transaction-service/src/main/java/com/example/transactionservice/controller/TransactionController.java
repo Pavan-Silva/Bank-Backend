@@ -6,6 +6,7 @@ import com.example.transactionservice.dto.TransferRequest;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.service.TransactionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,6 +15,15 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionController {
 
     private final TransactionService transactionService;
+
+    @GetMapping
+    public Page<Transaction> findAll(@RequestParam int page, @RequestParam int size, @RequestParam(required = false) Long accId) {
+        if (accId != null) {
+            return transactionService.findAllByAccId(page, size, accId);
+        }
+
+        return transactionService.findAll(page, size);
+    }
 
     @GetMapping("/{refNo}")
     public Transaction find(@PathVariable Long refNo) {

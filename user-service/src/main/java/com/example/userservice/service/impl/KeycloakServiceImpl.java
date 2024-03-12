@@ -45,4 +45,9 @@ public class KeycloakServiceImpl implements KeycloakService {
             throw new RuntimeException("User not found under given ID");
         }
     }
+
+    @Override
+    public List<UserRepresentation> findAllUsers(int page, int size) {
+        return keyCloakManager.getKeyCloakInstanceWithRealm().users().list(page, size);
+    }
 }

@@ -6,6 +6,10 @@ import com.example.accountservice.repository.AccountRepository;
 import com.example.accountservice.service.AccHolderService;
 import com.example.accountservice.service.AccountService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,6 +18,18 @@ public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
     private final AccHolderService accHolderService;
+
+    @Override
+    public Page<Account> findAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.ASC, "id");
+        return accountRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<Account> findByAccountHolderId(int page, int size, Long id) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.ASC, "id");
+        return accountRepository.findByAccHolder_Id(pageable, id);
+    }
 
     @Override
     public Account findById(Long id) {

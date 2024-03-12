@@ -15,6 +15,10 @@ import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,6 +35,18 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountProducer accountProducer;
     private final TransactionRepository transactionRepository;
     private final PendingTransactionRepository pendingTransactionRepository;
+
+    @Override
+    public Page<Transaction> findAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return transactionRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<Transaction> findAllByAccId(int page, int size, Long accId) {
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.ASC, "id");
+        return transactionRepository.findByMainAccountId(pageable, accId);
+    }
 
     @Override
     public Transaction findByRefNo(Long refNo) {
