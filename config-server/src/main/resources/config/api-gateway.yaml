@@ -29,19 +29,19 @@ spring:
         - id: account-service
           uri: lb://account-service
           predicates:
-            - Path=/accounts/**
+            - Path=/api/accounts/**
 
         - id: transaction-service
           uri: lb://transaction-service
           predicates:
-            - Path=/transactions/**
+            - Path=/api/transactions/**
 
         - id: email-service
           uri: lb://email-service
           predicates:
-            - Path=/email/**
+            - Path=/api/email/**
 
         - id: user-service
           uri: lb://user-service
           predicates:
-            - Path=/users/**
+            - Path=/api/users/**
