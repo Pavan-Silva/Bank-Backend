@@ -31,8 +31,8 @@ public class Transaction {
     private BigDecimal amount;
 
     @NotNull
-    @Column(name = "acc_holder_id", nullable = false)
-    private Integer accHolderId;
+    @Column(name = "account_id", nullable = false)
+    private Integer accountId;
 
     @NotNull
     @Column(name = "acc_balance", nullable = false)

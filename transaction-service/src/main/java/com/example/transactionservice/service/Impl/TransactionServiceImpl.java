@@ -4,10 +4,11 @@ import com.example.transactionservice.client.AccountClient;
 import com.example.transactionservice.dto.*;
 import com.example.transactionservice.exception.BadRequestException;
 import com.example.transactionservice.exception.NotFoundException;
+import com.example.transactionservice.messaging.AccountProducer;
+import com.example.transactionservice.messaging.EmailProducer;
 import com.example.transactionservice.model.Transaction;
 import com.example.transactionservice.model.TransactionConfirmation;
 import com.example.transactionservice.model.TransactionStatus;
-import com.example.transactionservice.publisher.RabbitMQProducer;
 import com.example.transactionservice.repository.TransactionConfirmationRepository;
 import com.example.transactionservice.repository.TransactionRepository;
 import com.example.transactionservice.service.TransactionService;
@@ -25,7 +26,8 @@ import java.util.Random;
 public class TransactionServiceImpl implements TransactionService {
 
     private final AccountClient accountClient;
-    private final RabbitMQProducer rabbitMQProducer;
+    private final EmailProducer emailProducer;
+    private final AccountProducer accountProducer;
     private final TransactionRepository transactionRepository;
     private final TransactionConfirmationRepository transactionConfirmationRepository;
 
@@ -40,7 +42,7 @@ public class TransactionServiceImpl implements TransactionService {
         String transactionType = transactionRequest.getTransactionType().getName();
 
         if (transactionType.equals("Deposit") || transactionType.equals("Withdrawal"))
-            return handleMonoTransaction(transactionRequest);
+            return handleInBranchTransaction(transactionRequest);
 
         else
             return handleTransfer(transactionRequest);
@@ -68,45 +70,45 @@ public class TransactionServiceImpl implements TransactionService {
                     .findByTransaction_RefNo(refNo)
                     .orElseThrow();
 
-            AccountDetails sender = accountClient.findAccount(transaction.getAccHolderId());
+            AccountDetails sender = accountClient.findAccount(transaction.getAccountId());
             AccountDetails receiver = accountClient.findAccount(confirmation.getReceiverId());
 
             boolean isOtpValid = otpRequest.getCode().equals(confirmation.getOtp());
             boolean isValidTimePeriod = confirmation.getExpirationTime().isAfter(Instant.now());
 
             if (isOtpValid && sender.getFailedTransactionAttempts() <3 && isValidTimePeriod) {
-                if (receiver != null) {
-                    checkAccountStatus(sender);
-                    checkAccountStatus(receiver);
-
-                    checkBalance(sender.getCurrentBalance(),transaction.getAmount());
-
-                    BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
-                    sender.setCurrentBalance(updatedSenderAccBalance);
-
-                    BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
-                    receiver.setCurrentBalance(updatedReceiverAccBalance);
-
-                    sender.setFailedTransactionAttempts(0);
-
-                    TransactionStatus transactionStatus = TransactionStatus.builder()
-                            .id(3)
-                            .name("Completed")
-                            .build();
-
-                    transaction.setTransactionStatus(transactionStatus);
-                    transaction.setAccBalance(updatedSenderAccBalance);
-                    Transaction completedTransaction = transactionRepository.save(transaction);
-
-                    transactionConfirmationRepository.delete(confirmation);
-
-                    rabbitMQProducer.sendAccountUpdateMessage(sender);
-                    rabbitMQProducer.sendAccountUpdateMessage(receiver);
-
-                    return completedTransaction;
+                if (receiver == null) {
+                    throw new BadRequestException("Invalid receiver");
                 }
 
-                return null;
+                checkAccountStatus(sender);
+                checkAccountStatus(receiver);
+
+                checkBalance(sender.getCurrentBalance(),transaction.getAmount());
+
+                BigDecimal updatedSenderAccBalance = sender.getCurrentBalance().subtract(transaction.getAmount());
+                sender.setCurrentBalance(updatedSenderAccBalance);
+
+                BigDecimal updatedReceiverAccBalance = receiver.getCurrentBalance().add(transaction.getAmount());
+                receiver.setCurrentBalance(updatedReceiverAccBalance);
+
+                sender.setFailedTransactionAttempts(0);
+
+                TransactionStatus transactionStatus = TransactionStatus.builder()
+                        .id(3)
+                        .name("Completed")
+                        .build();
+
+                transaction.setTransactionStatus(transactionStatus);
+                transaction.setAccBalance(updatedSenderAccBalance);
+                Transaction completedTransaction = transactionRepository.save(transaction);
+
+                transactionConfirmationRepository.delete(confirmation);
+
+                accountProducer.sendAccountUpdateMessage(sender);
+                accountProducer.sendAccountUpdateMessage(receiver);
+
+                return completedTransaction;
 
             } else if (sender.getFailedTransactionAttempts() >= 3) {
                 sender.setAccStatus(AccountStatus.builder()
@@ -114,12 +116,12 @@ public class TransactionServiceImpl implements TransactionService {
                         .name("Disabled")
                         .build());
 
-                rabbitMQProducer.sendAccountUpdateMessage(sender);
+                accountProducer.sendAccountUpdateMessage(sender);
                 throw new BadRequestException("Account Disabled");
 
             } else {
                 sender.setFailedTransactionAttempts(sender.getFailedTransactionAttempts() + 1);
-                rabbitMQProducer.sendAccountUpdateMessage(sender);
+                accountProducer.sendAccountUpdateMessage(sender);
                 throw new BadRequestException("Failed Attempt");
             }
         }
@@ -139,11 +141,24 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     public void resendOtp(Integer refNo) {
         Transaction transaction = findByRefNo(refNo);
-        AccountDetails account = accountClient.findAccount(transaction.getAccHolderId());
+        AccountDetails account = accountClient.findAccount(transaction.getAccountId());
         sendVerificationCode(account, transaction);
     }
 
-    private Transaction handleMonoTransaction(TransactionRequest transactionRequest) {
+    private Transaction handleTransfer(TransactionRequest transactionRequest) {
+        AccountDetails sender = accountClient.findAccount(transactionRequest.getSenderId());
+        AccountDetails receiver = accountClient.findAccount(transactionRequest.getReceiverId());
+
+        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
+        pendingTransaction.setAccBalance(sender.getCurrentBalance());
+
+        Transaction transaction = transactionRepository.save(pendingTransaction);
+
+        sendVerificationCode(receiver, transaction);
+        return transaction;
+    }
+
+    private Transaction handleInBranchTransaction(TransactionRequest transactionRequest) {
         AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
 
         if (account != null) {
@@ -167,22 +182,11 @@ public class TransactionServiceImpl implements TransactionService {
             pendingTransaction.setAccBalance(accBalance);
             Transaction transaction = transactionRepository.save(pendingTransaction);
 
-            rabbitMQProducer.sendAccountUpdateMessage(account);
+            accountProducer.sendAccountUpdateMessage(account);
             return transaction;
         }
 
         else throw new RuntimeException("Invalid sender");
-    }
-
-    private Transaction handleTransfer(TransactionRequest transactionRequest) {
-        AccountDetails account = accountClient.findAccount(transactionRequest.getSenderId());
-
-        Transaction pendingTransaction = dtoToTransaction(transactionRequest);
-        pendingTransaction.setAccBalance(account.getCurrentBalance());
-        Transaction transaction = transactionRepository.save(pendingTransaction);
-
-        sendVerificationCode(account, transaction);
-        return transaction;
     }
 
     private void checkBalance(BigDecimal balance, BigDecimal amount) {
@@ -209,7 +213,7 @@ public class TransactionServiceImpl implements TransactionService {
                         .build()
         );
 
-        rabbitMQProducer.sendEmailMessage(
+        emailProducer.sendEmailMessage(
                 Mail.builder()
                         .subject("Abc Bank OTP")
                         .message(account.getAccHolder().getName() + ", OTP for your current transaction is: " + confirmation.getOtp())
@@ -227,7 +231,7 @@ public class TransactionServiceImpl implements TransactionService {
         return Transaction.builder()
                 .date(Instant.now())
                 .amount(transactionRequest.getAmount())
-                .accHolderId(transactionRequest.getSenderId())
+                .accountId(transactionRequest.getSenderId())
                 .description(transactionRequest.getDescription())
                 .transactionType(transactionRequest.getTransactionType())
                 .transactionStatus(transactionStatus)
