@@ -19,12 +19,6 @@ spring:
           issuer-uri: http://localhost:9090/realms/microservices
   cloud:
     gateway:
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOrigins: "http://localhost:5173"
-            allowedMethods: "*"
-            allowedHeaders: "*"
       routes:
         - id: account-service
           uri: lb://account-service

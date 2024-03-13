@@ -11,8 +11,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtGrantedAuthoritiesConverterAdapter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.reactive.CorsConfigurationSource;
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -22,7 +26,9 @@ public class SecurityConfig {
 
     @Bean
     SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
-        return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
+        return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(
                         exchange ->
                                 exchange.pathMatchers("/eureka/**").permitAll()
@@ -38,6 +44,19 @@ public class SecurityConfig {
                         jwt -> jwt.jwtAuthenticationConverter(converterForKeycloak()))
                 )
                 .build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration apiCorsConfiguration = new CorsConfiguration();
+        apiCorsConfiguration.setAllowCredentials(true);
+        apiCorsConfiguration.setAllowedOrigins(Collections.singletonList("http://localhost:5173"));
+        apiCorsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
+        apiCorsConfiguration.setAllowedMethods(Collections.singletonList("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", apiCorsConfiguration);
+        return source;
     }
 
     @Bean
